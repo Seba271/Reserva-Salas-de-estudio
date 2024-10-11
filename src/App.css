@@ -1,4 +1,4 @@
-/* src/App.css */
+
 body {
   display: flex;
   justify-content: center;
@@ -264,4 +264,52 @@ select:focus {
 .button-group {
   display: flex;
   justify-content: space-between;
+}
+
+.ban-form {
+  background-color: #96232d;
+  border: 1px solid #878081;
+  padding: 15px;
+  border-radius: 5px;
+  margin-top: 15px;
+  padding: 20px;
+}
+
+.ban-form input,
+.ban-form textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 5px;
+}
+
+.btn-danger {
+  background-color: #f01228;
+  color: white;
+}
+
+.ban-form label {
+  display: block;
+  /* Asegúrate de que el label ocupe toda la línea */
+  margin-bottom: 5px;
+  /* Espacio debajo del label */
+  color: #ececec;
+  /* Color del texto del label */
+}
+
+.ban-form textarea {
+  color: #ffffff;
+  /* Cambia el color del texto a blanco */
+  background-color: rgba(159, 125, 125, 0.74);
+  /* Cambia el color de fondo si lo deseas */
+  border: 1px solid #76c191;
+  /* Cambia el color del borde */
+  border-radius: 3px;
+  /* Bordes redondeados */
+  padding: 5px;
+  /* Espaciado interno */
+}
+
+.ban-form textarea::placeholder {
+  color: rgba(232, 226, 226, 0.7);
+  /* Cambia el color del placeholder */
 }
