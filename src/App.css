@@ -1,11 +1,11 @@
-
+/* src/App.css */
 body {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
   margin: 0;
-  background-color: #f0f0f0;
+  background-color: #ffffff;
   /* Color de fondo claro */
   color: rgb(255, 255, 255);
   /* Color de texto negro */
@@ -21,15 +21,31 @@ body {
   /* Permitir desplazamiento vertical */
   max-height: 90vh;
   /* Limitar la altura del contenedor */
+  box-shadow: 0 4px 10px rgb(255, 255, 255);
 }
 
 .edificio {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
+  gap: 10px;
   margin-bottom: 30px;
   background-color: rgb(222, 227, 222);
+  align-items: flex-start;
+}
+
+.salas-container {
+  /* modifica fondo de la sala*/
+  display: flex;
+  /* Disposición horizontal para las salas */
+  flex-wrap: wrap;
+  /* Permitir que las salas se envuelvan si es necesario */
+  justify-content: safe center;
+  /* Alinear las salas a la izquierda */
+  gap: 10px;
+  /* Espacio entre las salas */
+  box-shadow: 0 4px 10px rgba(222, 227, 222);
+  /* contenedor para disfrazar */
 }
 
 .sala {
