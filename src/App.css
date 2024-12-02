@@ -68,6 +68,10 @@ body {
   background-color: rgb(184, 23, 23);
 }
 
+.sala[data-estado="amarillo"] {
+  background-color: rgb(255, 157, 0);
+}
+
 .sala[data-estado="gris"] {
   background-color: rgb(128, 123, 123);
 }
@@ -328,4 +332,70 @@ select:focus {
 .ban-form textarea::placeholder {
   color: rgba(232, 226, 226, 0.7);
   /* Cambia el color del placeholder */
+}
+
+/* Estilos actualizados para los mensajes toast */
+.toast-container {
+  position: fixed;
+  top: 1rem; /* Posición desde la parte superior */
+  right: 1rem; /* Posición desde la derecha */
+  z-index: 1050; /* Asegura que esté sobre otros elementos */
+  pointer-events: none; /* Permite clics a través del contenedor cuando no hay toasts */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Alinea los toasts a la derecha */
+  padding: 0; /* Elimina el padding interno */
+  margin: 0; /* Elimina cualquier margen */
+}
+
+.toast {
+  display: flex; /* Asegura que los elementos internos estén en línea */
+  align-items: center; /* Centra los elementos verticalmente */
+  background-color: #ffffff; /* Fondo blanco para mayor legibilidad */
+  color: #000000; /* Texto oscuro para contraste */
+  padding: 8px 16px; /* Reduce el padding para un look más compacto */
+  border-radius: 8px; /* Bordes redondeados */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  margin-bottom: 10px; /* Espacio entre toasts */
+  pointer-events: auto; /* Permite interacción con el toast */
+  width: auto; /* Ancho automático basado en el contenido */
+  max-width: 300px; /* Máximo ancho permitido */
+}
+
+.toast-success {
+  background-color: #4CAF50; /* Verde para éxitos */
+  color: #ffffff; /* Texto blanco para contraste */
+}
+
+.toast-info {
+  background-color: #2196F3; /* Azul para información */
+  color: #ffffff; /* Texto blanco para contraste */
+}
+
+.toast-warning {
+  background-color: #ff9800; /* Naranja para advertencias */
+  color: #ffffff; /* Texto blanco para contraste */
+}
+
+.toast-error {
+  background-color: #f44336; /* Rojo para errores */
+  color: #ffffff; /* Texto blanco para contraste */
+}
+
+/* Estilos para la barra de progreso en react-toastify */
+.Toastify__progress-bar {
+    height: 100px; /* Altura de la barra de progreso */
+    opacity: 0.2;
+}
+
+.Toastify__toast-container.Toastify__toast-container--top-right {
+    /*320x176*/
+    width: 315px;
+    height: 140px;
+    padding: 10px; /* Añade un poco de padding para evitar que los toasts toquen los bordes del contenedor */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra ajustada para estar más arriba */
+}
+
+.Toastify__toast-body {
+  color: #000000; /* Establece el color de texto a negro */
 }

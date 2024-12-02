@@ -71,42 +71,57 @@ app.get('/api/carreras', (req, res) => {
   const query = 'SELECT * FROM carreras';
   db.query(query, (err, results) => {
     if (err) {
-      return res.status(500).json({ error: 'Error al obtener los administradores' });
+      return res.status(500).json({ error: 'Error al obtener carreras' });
     }
     res.json(results);
   });
 });
 
+
 // Definir una ruta para crear un nuevo usuario o verificar si ya existe
 app.post('/api/usuarios', (req, res) => {
-  const { rut, id_carrera, tipo_usuario } = req.body;
+  const { rut, nombre_carrera, tipo_usuario } = req.body;
 
-  // Verificar que todos los campos necesarios estén presentes
-  if (!rut || !id_carrera || !tipo_usuario) {
+  if (!rut || !nombre_carrera || !tipo_usuario) {
     return res.status(400).json({ error: 'Todos los campos son requeridos' });
   }
 
-  // Consulta para verificar si el usuario ya existe
-  const checkUserQuery = "SELECT * FROM `usuarios` WHERE `rut` = ?";
-  db.query(checkUserQuery, [rut], (err, results) => {
+  // Consulta para obtener el ID de la carrera basado en el nombre
+  const getCarreraIdQuery = "SELECT id_carrera FROM `carreras` WHERE `nombre_carrera` = ?";
+  db.query(getCarreraIdQuery, [nombre_carrera], (err, results) => {
     if (err) {
-      console.error('Error al verificar el usuario:', err);
-      return res.status(500).json({ error: 'Error al verificar el usuario' });
+      console.error('Error al obtener el ID de la carrera:', err);
+      return res.status(500).json({ error: 'Error al obtener el ID de la carrera' });
     }
 
-    if (results.length > 0) {
-      // El usuario ya existe, no es necesario crearlo de nuevo
-      return res.status(200).json({ message: 'Usuario ya existe', userId: results[0].id });
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Carrera no encontrada' });
     }
 
-    // Consulta para insertar un nuevo usuario
-    const insertUserQuery = "INSERT INTO `usuarios`( `rut`, `tipo_usuario`, `carrera_id`) VALUES (?, ?, ?)";
-    db.query(insertUserQuery, [rut, tipo_usuario, id_carrera], (err, result) => {
+    const id_carrera = results[0].id_carrera;
+
+    // Consulta para verificar si el usuario ya existe
+    const checkUserQuery = "SELECT * FROM `usuarios` WHERE `rut` = ?";
+    db.query(checkUserQuery, [rut], (err, results) => {
       if (err) {
-        console.error('Error al insertar el usuario:', err);
-        return res.status(500).json({ error: 'Error al insertar el usuario' });
+        console.error('Error al verificar el usuario:', err);
+        return res.status(500).json({ error: 'Error al verificar el usuario' });
       }
-      res.status(201).json({ message: 'Usuario creado exitosamente', userId: result.insertId });
+
+      if (results.length > 0) {
+        // El usuario ya existe, no es necesario crearlo de nuevo
+        return res.status(200).json({ message: 'Usuario ya existe', userId: results[0].id });
+      }
+
+      // Consulta para insertar un nuevo usuario
+      const insertUserQuery = "INSERT INTO `usuarios`( `rut`, `tipo_usuario`, `carrera_id`) VALUES (?, ?, ?)";
+      db.query(insertUserQuery, [rut, tipo_usuario, id_carrera], (err, result) => {
+        if (err) {
+          console.error('Error al insertar el usuario:', err);
+          return res.status(500).json({ error: 'Error al insertar el usuario' });
+        }
+        res.status(201).json({ message: 'Usuario creado exitosamente', userId: result.insertId });
+      });
     });
   });
 });
@@ -115,10 +130,22 @@ app.post('/api/usuarios', (req, res) => {
 app.post('/api/reservas', (req, res) => {
   const { id_sala, fecha_reserva, hora_inicio, rut_usuario, numero_personas } = req.body;
 
-  // Calcular la hora de fin sumando 2 horas a la hora de inicio
-  const horaFin = new Date(`1970-01-01T${hora_inicio}Z`);
-  horaFin.setHours(horaFin.getHours() + 2);
-  const hora_fin = horaFin.toISOString().substr(11, 8);
+  // Mapear hora_inicio a hora_fin según los rangos predefinidos
+  const horarios = {
+    "08:30:00": "10:30:00",
+    "10:30:00": "12:30:00",
+    "12:30:00": "14:30:00",
+    "14:30:00": "16:30:00",
+    "16:30:00": "18:30:00",
+    "18:30:00": "20:30:00",
+    "20:30:00": "22:30:00"
+  };
+
+  const hora_fin = horarios[hora_inicio];
+
+  if (!hora_fin) {
+    return res.status(400).json({ error: 'Hora de inicio no válida' });
+  }
 
   // Consulta para insertar una nueva reserva
   const query = `
@@ -164,13 +191,18 @@ app.put('/api/salas/:id', (req, res) => {
   });
 });
 
-
+app.get('/api/salas', (req, res) => {
+  const query = "SELECT * FROM salas";
+  db.query(query, (err, results) => {
+    res.json(results);
+  });
+});
 
 
 // Definir una ruta para obtener el estado de las salas junto con las reservas activas
 app.get('/api/salas-con-reservas', (req, res) => {
   const query = `
-    SELECT salas.id_sala, salas.estado, reservas.id_reserva, reservas.rut_usuario, reservas.numero_personas, usuarios.carrera_id, carreras.nombre_carrera, reservas.fecha_creacion
+    SELECT salas.id_sala, salas.estado, reservas.id_reserva, reservas.rut_usuario, reservas.numero_personas, usuarios.carrera_id, carreras.nombre_carrera, reservas.fecha_creacion, hora_inicio
     FROM salas
     INNER JOIN reservas ON salas.id_sala = reservas.id_sala AND reservas.estado_reserva = 'activa'
     INNER JOIN usuarios ON reservas.rut_usuario = usuarios.rut
@@ -205,6 +237,18 @@ app.get('/api/usuarios/:rut', (req, res) => {
     } else {
       res.status(404).json({ error: 'Usuario no encontrado' });
     }
+  });
+});
+
+// Ruta para obtener salas con estado deshabilitado
+app.get('/api/salas/deshabilitadas', (req, res) => {
+  const query = "SELECT * FROM salas WHERE estado = 'deshabilitada'";
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error al obtener las salas deshabilitadas:', err);
+      return res.status(500).json({ error: 'Error al obtener las salas deshabilitadas' });
+    }
+    res.json(results);
   });
 });
 

@@ -1,11 +1,11 @@
-export const crearUsuario = async (rut: string, id_carrera: number, tipo_usuario: string) => {
+export const crearUsuario = async (rut: string, nombre_carrera: string, tipo_usuario: string) => {
   try {
     const response = await fetch('http://localhost:3000/api/usuarios', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ rut, id_carrera, tipo_usuario }),
+      body: JSON.stringify({ rut, nombre_carrera, tipo_usuario }),
     });
 
     if (!response.ok) {
@@ -117,6 +117,15 @@ export const actualizarEstadoSala = async (id_sala: number, estado: string) => {
   }
 };
 
+export const obtenerSalas = async () => {
+  try {
+    const response = await fetch('http://localhost:3000/api/salas');
+    return await response.json();
+  } catch (error) {
+    console.error('Error en la solicitud de salas:', error);
+    throw error;
+  }
+};
 
 
 export const obtenerSalasConReservas = async () => {
@@ -141,6 +150,19 @@ export const obtenerUsuarioPorRut = async (rut: string) => {
     return await response.json();
   } catch (error) {
     console.error('Error al obtener el usuario:', error);
+    throw error;
+  }
+};
+
+export const obtenerSalasDeshabilitadas = async () => {
+  try {
+    const response = await fetch('http://localhost:3000/api/salas/deshabilitadas');
+    if (!response.ok) {
+      throw new Error('Error al obtener las salas deshabilitadas');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error en la solicitud de salas deshabilitadas:', error);
     throw error;
   }
 };

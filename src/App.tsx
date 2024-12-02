@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Login from './Login';
 import VistaSalasPublica from './VistaSalasPublica';
 import './App.css';
-import { crearUsuario, obtenerCarreras, crearReserva, actualizarEstadoReserva, actualizarEstadoSala, obtenerSalasConReservas, obtenerUsuarioPorRut } from './services/apiService';
+import { crearUsuario, obtenerCarreras, crearReserva, actualizarEstadoReserva, actualizarEstadoSala, obtenerSalasConReservas, obtenerUsuarioPorRut, obtenerSalasDeshabilitadas } from './services/apiService';
 
 interface Sala {
   estado: string;
@@ -24,13 +24,15 @@ interface SalaInfoProps {
 const SalaInfo: React.FC<SalaInfoProps> = ({ sala, index, edificio, liberarSala }) => {
   const [expanded, setExpanded] = useState(false);
 
+
+  // reto
   return (
     <div>
       {expanded ? (
         <div className="sala-info-expanded">
           <p>RUT: {sala.rut}</p>
           <p>N° de personas: {sala.personas}</p>
-          <p>Carrera: {sala.carrera}</p> {/* Asegúrate de que `sala.carrera` contenga el nombre de la carrera */}
+          <p>Carrera: {sala.carrera}</p>
           <button className="btn btn-secondary" onClick={() => setExpanded(false)}>Ver menos</button>
           <button className="btn btn-secondary" onClick={() => liberarSala(edificio, index)}>Liberar</button>
         </div>
@@ -70,6 +72,8 @@ const SalaManager = () => {
   const [timers, setTimers] = useState<{ [key: number]: number }>({});
   const [carreras, setCarreras] = useState<{ id_carrera: number; nombre_carrera: string }[]>([]);
   const [horaInicio, setHoraInicio] = useState('');
+  const [carreraEditable, setCarreraEditable] = useState(true);
+  const [tipoUsuarioEditable, setTipoUsuarioEditable] = useState(true);
 
   useEffect(() => {
     const fetchCarreras = async () => {
@@ -126,16 +130,24 @@ const SalaManager = () => {
     if (/^[0-9]*-?[0-9Kk]?$/.test(value) && value.length <= 10) {
       setRut(value);
 
-      if (value.length > 0) {
+      if (value.length >= 8) {
         try {
           const usuario = await obtenerUsuarioPorRut(value);
           if (usuario.carrera_id !== null && usuario.carrera_id !== undefined) {
-            toast.info(`ID de Carrera: ${usuario.carrera_id}`);
+            toast.info(`Usuario encontrado`);
+
+            setCarrera(usuario.nombre_carrera);
+            setCarreraEditable(false);
+            setTipoUsuario(usuario.tipo_usuario);
+            setTipoUsuarioEditable(false);
           } else {
-            toast.error('ID de Carrera no disponible');
+            toast.error('No se pudo obtener la carrera del usuario');
           }
         } catch (error) {
-          toast.error('Usuario no existe');
+          if(value.length <= 9){
+            setCarreraEditable(true);
+            setTipoUsuarioEditable(true);
+          }
         }
       }
     }
@@ -186,17 +198,27 @@ const SalaManager = () => {
 
     try {
       // Intentar crear el usuario
-      await crearUsuario(rut, Number(carrera), tipoUsuario);
+      await crearUsuario(rut, carrera, tipoUsuario);
 
       // Si el usuario se crea con éxito, proceder a crear la reserva
       const fechaReserva = new Date().toISOString().split('T')[0]; // Fecha actual
-      const idSala = selectedSala.index + 1; // Asumiendo que el índice de la sala es su ID
+      // si edificio A, idSala = index + 1, si edificio B, idSala = index + 7
+      const idSala = selectedSala.edificio === 'edificioA' ? selectedSala.index + 1 : selectedSala.index + 7;
 
       const reservaResponse = await crearReserva(idSala, fechaReserva, horaInicio, rut, personas);
       const { reservaId } = reservaResponse; // Obtener el ID de la reserva
 
       asignarSala(reservaId); // Pasar el ID de la reserva a la función asignarSala
       console.log('Usuario y reserva creados exitosamente.');
+
+      // Resetear los estados después de asignar la sala
+      setRut('');
+      setPersonas(0);
+      setCarrera('');
+      setTipoUsuario('');
+      setHoraInicio('');
+      setCarreraEditable(true);
+      setTipoUsuarioEditable(true);
     } catch (error) {
       console.error('Error al crear el usuario o la reserva:', error);
       toast.error('Error al crear el usuario o la reserva.');
@@ -205,7 +227,8 @@ const SalaManager = () => {
 
   const asignarSala = async (reservaId: number) => {
     const { edificio, index } = selectedSala;
-    const idSala = index + 1; // Asumiendo que el índice de la sala es su ID
+    //si edificio A, idSala = index + 1, si edificio B, idSala = index + 7
+    const idSala = edificio === 'edificioA' ? index + 1 : index + 7;
 
     try {
       // Actualizar el estado de la sala a "ocupada"
@@ -227,6 +250,11 @@ const SalaManager = () => {
           ...prevTimers,
           [index]: 7200, // Inicializar con 7200 segundos para 2 horas
         }));
+      }else{
+        setTimers((prevTimers) => ({
+          ...prevTimers,
+          [index+7]: 7200, // Inicializar con 7200 segundos para 2 horas
+        }));
       }
 
       setSelectedSala(null);
@@ -243,7 +271,8 @@ const SalaManager = () => {
   const liberarSala = async (edificio: string, index: number) => {
     const newSalas = { ...salas };
     const sala = newSalas[edificio as keyof typeof salas][index];
-    const idSala = index + 1; // Asumiendo que el índice de la sala es su ID
+    //si edificio A, idSala = index + 1, si edificio B, idSala = index + 7
+    const idSala = edificio === 'edificioA' ? index + 1 : index + 7;
 
     try {
       if (sala.id_reserva) {
@@ -255,11 +284,19 @@ const SalaManager = () => {
       newSalas[edificio as keyof typeof salas][index] = { estado: 'verde', rut: '', personas: 0, carrera: '' };
       setSalas(newSalas);
 
-      setTimers((prevTimers) => {
-        const newTimers = { ...prevTimers };
+      if(edificio === 'edificioA'){
+        setTimers((prevTimers) => {
+          const newTimers = { ...prevTimers };
         delete newTimers[index];
         return newTimers;
+        });
+      }else{
+        setTimers((prevTimers) => {
+          const newTimers = { ...prevTimers };
+          delete newTimers[index+7];
+          return newTimers;
       });
+      }
 
       toast.success('Sala liberada exitosamente.');
     } catch (error) {
@@ -268,19 +305,40 @@ const SalaManager = () => {
     }
   };
 
-  const toggleMantenimiento = (edificio: string, index: number) => {
+  const toggleMantenimiento = async (edificio: string, index: number) => {
     const newMantenimiento = { ...mantenimiento };
     newMantenimiento[edificio as keyof typeof mantenimiento][index] = !newMantenimiento[edificio as keyof typeof mantenimiento][index];
     setMantenimiento(newMantenimiento);
 
     const newSalas = { ...salas };
-    newSalas[edificio as keyof typeof salas][index] = {
-      ...newSalas[edificio as keyof typeof salas][index],
-      estado: newMantenimiento[edificio as keyof typeof mantenimiento][index] ? 'gris' : 'verde',
-    };
-    setSalas(newSalas);
+    const salaActual = newSalas[edificio as keyof typeof salas][index];
+    const nuevoEstado = newMantenimiento[edificio as keyof typeof mantenimiento][index] ? 'deshabilitada' : 'disponible';
 
-    toast.success(`Sala ${index + 1} en ${edificio} ${newMantenimiento[edificio as keyof typeof mantenimiento][index] ? 'deshabilitada' : 'habilitada'}`);
+    // Asignar colores basados en el nuevo estado
+    const nuevoColor = nuevoEstado === 'deshabilitada' ? 'gris' : 'verde';
+
+    try {
+      // Actualizar el estado de la sala en la base de datos
+      const idSala = edificio === 'edificioA' ? index + 1 : index + 7;
+      await actualizarEstadoSala(idSala, nuevoEstado);
+
+      newSalas[edificio as keyof typeof salas][index] = {
+        ...salaActual,
+        estado: nuevoColor,  // Usar el nuevo color basado en el estado
+        rut: salaActual.rut,
+        personas: salaActual.personas,
+        carrera: salaActual.carrera,
+        id_reserva: salaActual.id_reserva,
+      };
+      setSalas(newSalas);
+
+      //si edificio A, sala = index + 1, si edificio B, sala = index + 7
+      const sala = edificio === 'edificioA' ? index + 1 : index + 7;
+      toast.success(`Sala ${sala} en ${edificio} ha sido ${nuevoEstado === 'deshabilitada' ? 'deshabilitada' : 'habilitada'}`);
+    } catch (error) {
+      console.error('Error al actualizar el estado de la sala:', error);
+      toast.error('Error al actualizar el estado de la sala.');
+    }
   };
 
   const handleLoginClick = () => {
@@ -326,11 +384,15 @@ const SalaManager = () => {
           if (newTimers[numericKey] > 0) {
             newTimers[numericKey] -= 1;
           } else if (newTimers[numericKey] === 0) {
+            const edificio = numericKey < 6 ? 'edificioA' : 'edificioB';
+            const idSala = edificio === 'edificioA' ? numericKey + 1 : numericKey + 7;
             const sala = salas.edificioA[numericKey] || salas.edificioB[numericKey];
-            if (sala && sala.id_reserva) {
+            if (idSala && sala.id_reserva) {
               actualizarEstadoReserva(sala.id_reserva, 'expirada')
+              actualizarEstadoSala(idSala, 'disponible')
                 .then(() => {
                   toast.success(`Reserva de la sala ${numericKey + 1} expirada.`);
+                  
                 })
                 .catch(() => {
                   toast.error('Error al expirar la reserva automáticamente.');
@@ -360,15 +422,17 @@ const SalaManager = () => {
         const salasConReservas = await obtenerSalasConReservas();
         const newSalas = { ...salas };
 
-        salasConReservas.forEach((sala: { id_sala: number; estado: string; rut_usuario: string; numero_personas: number; carrera_id: number, nombre_carrera: string, id_reserva: number, fecha_creacion: string }) => {
+        salasConReservas.forEach((sala: { id_sala: number; estado: string; rut_usuario: string; numero_personas: number; carrera_id: number, nombre_carrera: string, id_reserva: number, fecha_creacion: string, hora_inicio: string }) => {
           const edificio = sala.id_sala <= 6 ? 'edificioA' : 'edificioB';
-          const index = sala.id_sala - 1;
+          const index = sala.id_sala <= 6 ? sala.id_sala - 1 : sala.id_sala - 7;
 
+        
           const fechaCreacion = new Date(sala.fecha_creacion);
           const ahora = new Date();
           const tiempoTranscurrido = Math.floor((ahora.getTime() - fechaCreacion.getTime()) / 1000);
           const tiempoRestante = Math.max(7200 - tiempoTranscurrido, 0);
 
+         
           newSalas[edificio as keyof typeof salas][index] = {
             estado: sala.estado === 'ocupada' ? 'rojo' : 'verde',
             rut: sala.rut_usuario || '',
@@ -377,11 +441,35 @@ const SalaManager = () => {
             id_reserva: sala.id_reserva,
           };
 
-          if (tiempoRestante > 0) {
-            setTimers((prevTimers) => ({
+          if(edificio === 'edificioA'){
+            if (tiempoRestante > 0) {
+              setTimers((prevTimers) => ({
               ...prevTimers,
               [index]: tiempoRestante,
+              }));
+              //si tiempo restante <0 poner tiempo excedido
+            }else if(tiempoRestante<0){
+              setTimers((prevTimers) => {
+                const newTimers = { ...prevTimers };
+                delete newTimers[index];
+                return newTimers;
+              });
+            }
+          }else{
+            if (tiempoRestante > 0) {
+              setTimers((prevTimers) => ({
+              ...prevTimers,
+              [index+7]: tiempoRestante,
             }));
+            //si tiempo restante <0 poner tiempo excedido
+            }else if(tiempoRestante<0){
+              //en la parte donde iba el tiempo poner tiempo excedido
+              setTimers((prevTimers) => {
+                const newTimers = { ...prevTimers };
+                delete newTimers[index+7];
+                return newTimers;
+              });
+            }
           }
         });
 
@@ -394,6 +482,42 @@ const SalaManager = () => {
 
     fetchSalasConReservas();
   }, []);
+
+  useEffect(() => {
+    const cargarSalasDeshabilitadas = async () => {
+      try {
+        const salasDeshabilitadas = await obtenerSalasDeshabilitadas();
+        const newSalas = { ...salas };
+        const newMantenimiento = { ...mantenimiento };
+
+        salasDeshabilitadas.forEach((sala: { id_sala: number }) => {
+          const edificio = sala.id_sala <= 6 ? 'edificioA' : 'edificioB';
+          const index = sala.id_sala <= 6 ? sala.id_sala - 1 : sala.id_sala - 7;
+
+          newSalas[edificio as keyof typeof salas][index] = {
+            ...newSalas[edificio as keyof typeof salas][index],
+            estado: 'gris', // Cambiar el estado a 'gris' para indicar que está deshabilitada
+          };
+
+          // Actualizar el estado de mantenimiento
+          newMantenimiento[edificio as keyof typeof mantenimiento][index] = true;
+        });
+
+        setSalas(newSalas);
+        setMantenimiento(newMantenimiento);
+      } catch (error) {
+        console.error('Error al cargar las salas deshabilitadas:', error);
+        toast.error('No se pudo cargar el estado de las salas deshabilitadas.');
+      }
+    };
+
+    cargarSalasDeshabilitadas();
+  }, []);
+
+
+  
+  
+  
 
   // Función para obtener las opciones de hora válidas
   const getValidTimeOptions = () => {
@@ -439,9 +563,7 @@ const SalaManager = () => {
               if (tiempoRestante !== undefined) {
                 if (tiempoRestante >= 6) {
                   estadoSala = 'rojo'; // Entre 9 y 6 segundos restantes
-                } else if (tiempoRestante >= 1) {
-                  estadoSala = 'naranja'; // Entre 5 y 1 segundos restantes
-                } else if (tiempoRestante === 0 && sala.estado !== 'amarillo') {
+                }else if (tiempoRestante < 0) {
                   estadoSala = 'amarillo'; // Tiempo excedido
                 }
               }
@@ -481,10 +603,12 @@ const SalaManager = () => {
                         <select
                           value={carrera}
                           onChange={(e) => setCarrera(e.target.value)}
+                          disabled={!carreraEditable}
+                          style={{ backgroundColor: carreraEditable ? 'white' : 'lightgray' }}
                         >
                           <option value="">Selecciona una carrera</option>
                           {carreras.map((carrera) => (
-                            <option key={carrera.id_carrera} value={carrera.id_carrera}>
+                            <option key={carrera.id_carrera} value={carrera.nombre_carrera}>
                               {carrera.nombre_carrera}
                             </option>
                           ))}
@@ -494,6 +618,8 @@ const SalaManager = () => {
                         <select
                           value={tipoUsuario}
                           onChange={(e) => setTipoUsuario(e.target.value)}
+                          disabled={!tipoUsuarioEditable}
+                          style={{ backgroundColor: tipoUsuarioEditable ? 'white' : 'lightgray' }}
                         >
                           <option value="">Selecciona tipo de usuario</option>
                           <option value="estudiante">Estudiante</option>
@@ -536,88 +662,108 @@ const SalaManager = () => {
 
           <div className="edificio">
             <h2>Edificio B</h2>
-            {salas.edificioB.map((sala, index) => (
-              <div key={index} className="sala" data-estado={sala.estado}>
-                <div onClick={() => handleSalaClick('edificioB', index)}>
-                  Sala {index + 7}
-                </div>
-                {sala.estado === 'rojo' && (
-                  <SalaInfo sala={sala} index={index} edificio="edificioB" liberarSala={liberarSala} />
-                )}
-                {selectedSala && selectedSala.edificio === 'edificioB' && selectedSala.index === index && (
-                  <div className="menu-asignacion">
-                    <h3>Asignar Sala {index + 7}</h3>
-                    <div className="input-group">
-                      <input
-                        type="text"
-                        placeholder="RUT"
-                        value={rut}
-                        onChange={handleRutChange}
-                        maxLength={10}
-                      />
-                    </div>
-                    <div className="input-group">
-                      <select
-                        value={personas}
-                        onChange={(e) => setPersonas(Number(e.target.value))}
-                      >
-                        <option value={0}>N° de personas</option>
-                        {[...Array(8)].map((_, i) => (
-                          <option key={i + 1} value={i + 1}>{i + 1}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="input-group">
-                      <select
-                        value={carrera}
-                        onChange={(e) => setCarrera(e.target.value)}
-                      >
-                        <option value="">Selecciona una carrera</option>
-                        {carreras.map((carrera) => (
-                          <option key={carrera.id_carrera} value={carrera.id_carrera}>
-                            {carrera.nombre_carrera}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="input-group">
-                      <select
-                        value={tipoUsuario}
-                        onChange={(e) => setTipoUsuario(e.target.value)}
-                      >
-                        <option value="">Selecciona tipo de usuario</option>
-                        <option value="estudiante">Estudiante</option>
-                        <option value="profesor">Profesor</option>
-                      </select>
-                    </div>
-                    <div className="input-group">
-                      <select
-                        value={horaInicio}
-                        onChange={(e) => setHoraInicio(e.target.value)}
-                      >
-                        <option value="">Selecciona un rango de horas</option>
-                          <option value="08:30:00">08:30 - 10:30</option>
-                          <option value="10:30:00">10:30 - 12:30</option>
-                          <option value="12:30:00">12:30 - 14:30</option>
-                          <option value="14:30:00">14:30 - 16:30</option>
-                          <option value="16:30:00">16:30 - 18:30</option>
-                          <option value="18:30:00">18:30 - 20:30</option>
-                          <option value="20:30:00">20:30 - 22:30</option>
-                      </select>
-                    </div>
-                    <div className="button-group">
-                      <button className="btn btn-primary" onClick={confirmarAsignacion}>Asignar</button>
-                      <button className="btn btn-secondary" onClick={() => setSelectedSala(null)}>Cancelar</button>
-                    </div>
+            {salas.edificioB.map((sala, index) => {
+              const tiempoRestante = timers[index+7];
+              let estadoSala = sala.estado; // Usar el estado actual de la sala
+
+              if (tiempoRestante !== undefined) {
+                if (tiempoRestante >= 6) {
+                  estadoSala = 'rojo'; // Entre 9 y 6 segundos restantes
+                }else if (tiempoRestante < 0) {
+                  estadoSala = 'amarillo'; // Tiempo excedido
+                }
+              }
+
+              return (
+                <div key={index+7} className="sala" data-estado={estadoSala}>
+                  <div onClick={() => handleSalaClick('edificioB', index)}>
+                    Sala {index + 7}
                   </div>
-                )}
-                {sala.estado !== 'rojo' && (
-                  <button className="btn btn-warning" onClick={() => toggleMantenimiento('edificioB', index)}>
-                    {mantenimiento.edificioB[index] ? 'Habilitar' : 'Deshabilitar'}
-                  </button>
-                )}
-              </div>
-            ))}
+                  {sala.estado === 'rojo' && (
+                    <SalaInfo sala={sala} index={index} edificio="edificioB" liberarSala={liberarSala} />
+                  )}
+                  {selectedSala && selectedSala.edificio === 'edificioB' && selectedSala.index === index && (
+                    <div className="menu-asignacion">
+                      <h3>Asignar Sala {index + 7}</h3>
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          placeholder=" Ingrese RUT"
+                          value={rut}
+                          onChange={handleRutChange}
+                          maxLength={10}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <select
+                          value={personas}
+                          onChange={(e) => setPersonas(Number(e.target.value))}
+                        >
+                          <option value={0}>N° de personas</option>
+                          {[...Array(8)].map((_, i) => (
+                            <option key={i + 1} value={i + 1}>{i + 1}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="input-group">
+                        <select
+                          value={carrera}
+                          onChange={(e) => setCarrera(e.target.value)}
+                          disabled={!carreraEditable}
+                          style={{ backgroundColor: carreraEditable ? 'white' : 'lightgray' }}
+                        >
+                          <option value="">Selecciona una carrera</option>
+                          {carreras.map((carrera) => (
+                            <option key={carrera.id_carrera} value={carrera.nombre_carrera}>
+                              {carrera.nombre_carrera}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="input-group">
+                        <select
+                          value={tipoUsuario}
+                          onChange={(e) => setTipoUsuario(e.target.value)}
+                          disabled={!tipoUsuarioEditable}
+                          style={{ backgroundColor: tipoUsuarioEditable ? 'white' : 'lightgray' }}
+                        >
+                          <option value="">Selecciona tipo de usuario</option>
+                          <option value="estudiante">Estudiante</option>
+                          <option value="profesor">Profesor</option>
+                        </select>
+                      </div>
+                      <div className="input-group">
+                        <select
+                          value={horaInicio}
+                          onChange={(e) => setHoraInicio(e.target.value)}
+                        >
+                          <option value="">Selecciona un rango de horas</option>
+                          {getValidTimeOptions().map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="button-group">
+                        <button className="btn btn-primary" onClick={confirmarAsignacion}>Asignar</button>
+                        <button className="btn btn-secondary" onClick={() => setSelectedSala(null)}>Cancelar</button>
+                      </div>
+                    </div>
+                  )}
+                  {tiempoRestante !== undefined && (
+                    <div className="timer">
+                      {tiempoRestante > 0 ? `Tiempo restante: ${formatTime(tiempoRestante)}` : `Tiempo excedido`}
+                    </div>
+                  )}
+                  {estadoSala !== 'rojo' && (
+                    <button className="btn btn-warning" onClick={() => toggleMantenimiento('edificioB', index)}>
+                      {mantenimiento.edificioA[index] ? 'Habilitar' : 'Deshabilitar'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <button onClick={handleLogout} className="btn btn-secondary">Cerrar Sesión</button>
           <button onClick={() => setShowBanForm(true)} className="btn btn-danger">Bloquear Usuario</button>
