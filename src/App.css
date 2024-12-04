@@ -26,12 +26,14 @@ body {
 
 .edificio {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 30px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  margin-bottom: 20px;
   background-color: rgb(222, 227, 222);
-  align-items: flex-start;
+  padding: 5px 10px;
+  width: 100%;
 }
 
 .salas-container {
@@ -303,6 +305,7 @@ select:focus {
 }
 
 .btn-danger {
+  
   background-color: #f01228;
   color: white;
 }
@@ -398,4 +401,33 @@ select:focus {
 
 .Toastify__toast-body {
   color: #000000; /* Establece el color de texto a negro */
+}
+
+.button-group-horizontal {
+  display: flex;
+  justify-content: center; /* Centrar los botones horizontalmente */
+  align-items: center; /* Alinear verticalmente al centro */
+  width: 100%; /* Asegura que el contenedor ocupe todo el ancho disponible */
+  margin-top: 20px; /* Espacio superior opcional */
+  background: none; /* Elimina cualquier fondo */
+  border: none; /* Elimina cualquier borde */
+  box-shadow: none; /* Elimina cualquier sombra */
+  padding: 0; /* Elimina el padding */
+}
+
+.button-group-horizontal .btn {
+  width: 150px; /* Ancho fijo para todos los botones */
+  height: 40px; /* Altura fija para todos los botones */
+  margin: 0 5px; /* Espacio entre los botones */
+  font-size: 14px; /* Tamaño de fuente uniforme */
+  padding: 0; /* Elimina el padding adicional */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+h2 {
+  margin: 0;
+  padding: 5px 0;
+  text-align: center;
 }

@@ -1,0 +1,194 @@
+/* Estilos globales para aumentar el tamaño y grosor de la fuente */
+.historial-body, .historial-container {
+    width: 7;
+    height: 7;
+    font-size: 14px; /* Reducido aún más el tamaño de la fuente */
+    font-weight: bold; /* Hace que la fuente sea más gruesa */
+}
+
+/* Estilos para la tabla */
+.btn-danger {
+    padding: 15px 25px;
+    background-color: #dc3545;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px; /* Reducido aún más el tamaño de la fuente */
+    margin-left: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #c82333;
+}
+.reservas-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.reservas-table th, .reservas-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+    font-size: 14px; /* Reducido aún más el tamaño de la fuente */
+}
+
+/* Estilos específicos para los encabezados de la tabla */
+.reservas-table th {
+    background-color: #004085; /* Fondo oscuro para contraste */
+    color: #ffffff; /* Texto blanco para visibilidad */
+    font-weight: bold;
+}
+
+.reservas-table td {    
+    color: #004085;
+    background-color: #f8f9fa; /* Fondo claro para visibilidad */
+}
+
+/* Estilos para los inputs de fecha */
+.date-picker {
+    padding: 12px;
+    font-size: 0.8rem; /* Reducido aún más el tamaño de la fuente */
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #004085;
+    background-color: #ffae00;
+    transition: border-color 0.3s ease;
+    margin-right: 10px;
+
+}
+
+.date-picker:focus {
+    border-color: #004085;
+    outline: none;
+}
+
+/* Estilos para el botón de búsqueda */
+.btn-primary {
+    padding: 15px 25px;
+    background-color: #004085;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px; /* Reducido aún más el tamaño de la fuente */
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #003366;
+}
+
+.progress-bar-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.progress-bar {
+    height: 20px;
+    background-color: #004085;
+    border-radius: 4px;
+    text-align: center;
+    color: white;
+    line-height: 20px;
+    transition: width 0.3s ease;
+}
+.different-date {
+    background-color: #e0e0e0; /* Gris claro para filas con fecha diferente */
+}
+
+.record-count {
+    font-size: 0.8rem; /* Reducido aún más el tamaño de la fuente */
+    color: rgb(71, 70, 70); /* Asegúrate de que el color coincida con el encabezado */
+    text-align: center; /* Alinea el texto al centro */
+    margin-top: 10px; /* Añade un poco de espacio encima */
+    width: 100%; /* Asegura que ocupe todo el ancho disponible */
+  }
+
+.record-card {
+    display: inline-block; /* Permite que los cuadros se alineen horizontalmente si hay espacio */
+    background-color: #f8f9fa; /* Fondo claro */
+    color: #004085; /* Texto oscuro */
+    border: 1px solid #ccc; /* Borde sutil */
+    border-radius: 8px; /* Bordes redondeados */
+    padding: 15px; /* Espaciado interno */
+    margin: 10px; /* Espaciado externo */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra para efecto de elevación */
+    text-align: center; /* Centrar el texto */
+    font-size: 0.9rem; /* Reducido aún más el tamaño de la fuente */
+    display: flex; /* Usar flexbox para centrar contenido */
+    align-items: center; /* Centrar verticalmente */
+    justify-content: center; /* Centrar horizontalmente */
+    min-width: 250px; /* Ancho mínimo para uniformidad */
+    min-height: 100px; /* Altura mínima para uniformidad */
+    width: auto; /* Permite que el ancho se ajuste al contenido */
+    height: auto; /* Permite que la altura se ajuste al contenido */
+}
+
+.historial-container {
+    height: auto;
+    width: auto; /* Usa todo el ancho disponible */
+    margin: 0 auto; /* Centra el contenedor horizontalmente */
+    padding: 20px; /* Añade un poco de padding para el contenido interno */
+    background-color: #ffffff; /* Fondo blanco para el contenedor */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra para efecto de elevación */
+  border-radius: 8px; /* Bordes redondeados */
+}
+.main-container {
+    width: 100%; /* Usa todo el ancho disponible */
+    max-width: 100%; /* Aumenta el ancho máximo del contenedor padre */
+    margin: 0 auto; /* Centra el contenedor horizontalmente */
+    padding: 20px; /* Añade un poco de padding para el contenido interno */
+    background-color: #f0f0f0; /* Fondo claro para el contenedor */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra para efecto de elevación */
+    border-radius: 8px; /* Bordes redondeados */
+  }
+
+.record-card-container {
+    display: flex; /* Oculta el contenedor inicialmente */
+    justify-content: center;
+}
+
+.historial-span {
+    font-size: 0.8rem; /* Reducido aún más el tamaño de la fuente */
+}
+.historial-p {
+    line-height: 0.9; /* Reduce el interlineado */
+    font-size: 0.8rem; /* Reducido aún más el tamaño de la fuente */
+}
+
+.react-datepicker {
+    font-size: 0.9rem; /* Reducido aún más el tamaño de la fuente */
+}
+
+.react-datepicker__day--selected, 
+.react-datepicker__day--keyboard-selected {
+    background-color: #004085; /* Cambia el color de fondo del día seleccionado */
+    color: #ffffff; /* Cambia el color del texto del día seleccionado */
+}
+
+.react-datepicker__header {
+    background-color: #004085; /* Cambia el color de fondo del encabezado */
+    color: #ffffff; /* Cambia el color del texto del encabezado */
+}
+
+.btn-export {
+    padding: 15px 25px;
+    background-color: #006400; /* Verde oscuro */
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-export:hover {
+    background-color: #004d00; /* Verde más oscuro al pasar el ratón */
+}

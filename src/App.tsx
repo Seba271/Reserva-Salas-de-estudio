@@ -5,6 +5,7 @@ import Login from './Login';
 import VistaSalasPublica from './VistaSalasPublica';
 import './App.css';
 import { crearUsuario, obtenerCarreras, crearReserva, actualizarEstadoReserva, actualizarEstadoSala, obtenerSalasConReservas, obtenerUsuarioPorRut, obtenerSalasDeshabilitadas } from './services/apiService';
+import Historial from './Historial';
 
 interface Sala {
   estado: string;
@@ -74,6 +75,7 @@ const SalaManager = () => {
   const [horaInicio, setHoraInicio] = useState('');
   const [carreraEditable, setCarreraEditable] = useState(true);
   const [tipoUsuarioEditable, setTipoUsuarioEditable] = useState(true);
+  const [currentView, setCurrentView] = useState('main');
 
   useEffect(() => {
     const fetchCarreras = async () => {
@@ -201,14 +203,19 @@ const SalaManager = () => {
       await crearUsuario(rut, carrera, tipoUsuario);
 
       // Si el usuario se crea con éxito, proceder a crear la reserva
-      const fechaReserva = new Date().toISOString().split('T')[0]; // Fecha actual
+      const fechaReserva = new Date();
+      const year = fechaReserva.getFullYear();
+      const month = (fechaReserva.getMonth() + 1).toString().padStart(2, '0'); // Los meses son 0-indexados
+      const day = fechaReserva.getDate().toString().padStart(2, '0');
+      const fechaReservaLocal = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
       // si edificio A, idSala = index + 1, si edificio B, idSala = index + 7
       const idSala = selectedSala.edificio === 'edificioA' ? selectedSala.index + 1 : selectedSala.index + 7;
 
-      const reservaResponse = await crearReserva(idSala, fechaReserva, horaInicio, rut, personas);
+      const reservaResponse = await crearReserva(idSala, fechaReservaLocal, horaInicio, rut, personas);
       const { reservaId } = reservaResponse; // Obtener el ID de la reserva
 
       asignarSala(reservaId); // Pasar el ID de la reserva a la función asignarSala
+      console.log(fechaReservaLocal);
       console.log('Usuario y reserva creados exitosamente.');
 
       // Resetear los estados después de asignar la sala
@@ -431,8 +438,7 @@ const SalaManager = () => {
           const ahora = new Date();
           const tiempoTranscurrido = Math.floor((ahora.getTime() - fechaCreacion.getTime()) / 1000);
           const tiempoRestante = Math.max(7200 - tiempoTranscurrido, 0);
-
-         
+        
           newSalas[edificio as keyof typeof salas][index] = {
             estado: sala.estado === 'ocupada' ? 'rojo' : 'verde',
             rut: sala.rut_usuario || '',
@@ -464,6 +470,7 @@ const SalaManager = () => {
             //si tiempo restante <0 poner tiempo excedido
             }else if(tiempoRestante<0){
               //en la parte donde iba el tiempo poner tiempo excedido
+              
               setTimers((prevTimers) => {
                 const newTimers = { ...prevTimers };
                 delete newTimers[index+7];
@@ -501,7 +508,7 @@ const SalaManager = () => {
 
           // Actualizar el estado de mantenimiento
           newMantenimiento[edificio as keyof typeof mantenimiento][index] = true;
-        });
+          });
 
         setSalas(newSalas);
         setMantenimiento(newMantenimiento);
@@ -517,7 +524,7 @@ const SalaManager = () => {
 
   
   
-  
+
 
   // Función para obtener las opciones de hora válidas
   const getValidTimeOptions = () => {
@@ -545,262 +552,278 @@ const SalaManager = () => {
     return timeOptions.slice(startIndex);
   };
 
+  const handleViewChange = (view: string) => {
+    setCurrentView(view);
+  };
+
   return (
     <div className="container">
-      {!isLoggedIn && !showLoginForm ? (
-        <VistaSalasPublica salas={salas} onLoginClick={handleLoginClick} />
-      ) : showLoginForm ? (
-        <Login onLogin={handleLogin} />
-      ) : (
+      {currentView === 'main' ? (
         <>
-          <h1>Asignación de Salas</h1>
-          <div className="edificio">
-            <h2>Edificio A</h2>
-            {salas.edificioA.map((sala, index) => {
-              const tiempoRestante = timers[index];
-              let estadoSala = sala.estado; // Usar el estado actual de la sala
+          {!isLoggedIn && !showLoginForm ? (
+            <VistaSalasPublica salas={salas} onLoginClick={handleLoginClick} />
+          ) : showLoginForm ? (
+            <Login onLogin={handleLogin} />
+          ) : (
+            <>
+              <h1 className="reducido">Asignación de Salas</h1>
+              <div className="edificio reducido">
+                <h2>Edificio A</h2>
+                <div className="salas-container">
+                  {salas.edificioA.map((sala, index) => {
+                    const tiempoRestante = timers[index];
+                    let estadoSala = sala.estado; // Usar el estado actual de la sala
 
-              if (tiempoRestante !== undefined) {
-                if (tiempoRestante >= 6) {
-                  estadoSala = 'rojo'; // Entre 9 y 6 segundos restantes
-                }else if (tiempoRestante < 0) {
-                  estadoSala = 'amarillo'; // Tiempo excedido
-                }
-              }
+                    if (tiempoRestante !== undefined) {
+                      if (tiempoRestante >= 6) {
+                        estadoSala = 'rojo'; // Entre 9 y 6 segundos restantes
+                      }else if (tiempoRestante < 0) {
+                        estadoSala = 'amarillo'; // Tiempo excedido
+                      }
+                    }
 
-              return (
-                <div key={index} className="sala" data-estado={estadoSala}>
-                  <div onClick={() => handleSalaClick('edificioA', index)}>
-                    Sala {index + 1}
-                  </div>
-                  {sala.estado === 'rojo' && (
-                    <SalaInfo sala={sala} index={index} edificio="edificioA" liberarSala={liberarSala} />
-                  )}
-                  {selectedSala && selectedSala.edificio === 'edificioA' && selectedSala.index === index && (
-                    <div className="menu-asignacion">
-                      <h3>Asignar Sala {index + 1}</h3>
-                      <div className="input-group">
-                        <input
-                          type="text"
-                          placeholder=" Ingrese RUT"
-                          value={rut}
-                          onChange={handleRutChange}
-                          maxLength={10}
-                        />
+                    return (
+                      <div key={index} className="sala" data-estado={estadoSala}>
+                        <div onClick={() => handleSalaClick('edificioA', index)}>
+                          Sala {index + 1}
+                        </div>
+                        {sala.estado === 'rojo' && (
+                          <SalaInfo sala={sala} index={index} edificio="edificioA" liberarSala={liberarSala} />
+                        )}
+                        {selectedSala && selectedSala.edificio === 'edificioA' && selectedSala.index === index && (
+                          <div className="menu-asignacion">
+                            <h3>Asignar Sala {index + 1}</h3>
+                            <div className="input-group">
+                              <input
+                                type="text"
+                                placeholder=" Ingrese RUT"
+                                value={rut}
+                                onChange={handleRutChange}
+                                maxLength={10}
+                              />
+                            </div>
+                            <div className="input-group">
+                              <select
+                                value={personas}
+                                onChange={(e) => setPersonas(Number(e.target.value))}
+                              >
+                                <option value={0}>N° de personas</option>
+                                {[...Array(8)].map((_, i) => (
+                                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="input-group">
+                              <select
+                                value={carrera}
+                                onChange={(e) => setCarrera(e.target.value)}
+                                disabled={!carreraEditable}
+                                style={{ backgroundColor: carreraEditable ? 'white' : 'lightgray' }}
+                              >
+                                <option value="">Selecciona una carrera</option>
+                                {carreras.map((carrera) => (
+                                  <option key={carrera.id_carrera} value={carrera.nombre_carrera}>
+                                    {carrera.nombre_carrera}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="input-group">
+                              <select
+                                value={tipoUsuario}
+                                onChange={(e) => setTipoUsuario(e.target.value)}
+                                disabled={!tipoUsuarioEditable}
+                                style={{ backgroundColor: tipoUsuarioEditable ? 'white' : 'lightgray' }}
+                              >
+                                <option value="">Selecciona tipo de usuario</option>
+                                <option value="estudiante">Estudiante</option>
+                                <option value="profesor">Profesor</option>
+                              </select>
+                            </div>
+                            <div className="input-group">
+                              <select
+                                value={horaInicio}
+                                onChange={(e) => setHoraInicio(e.target.value)}
+                              >
+                                <option value="">Selecciona un rango de horas</option>
+                                {getValidTimeOptions().map(option => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="button-group">
+                              <button className="btn btn-primary" onClick={confirmarAsignacion}>Asignar</button>
+                              <button className="btn btn-secondary" onClick={() => setSelectedSala(null)}>Cancelar</button>
+                            </div>
+                          </div>
+                        )}
+                        {tiempoRestante !== undefined && (
+                          <div className="timer">
+                            {tiempoRestante > 0 ? `Tiempo restante: ${formatTime(tiempoRestante)}` : `Tiempo excedido`}
+                          </div>
+                        )}
+                        {estadoSala !== 'rojo' && (
+                          <button className="btn btn-warning" onClick={() => toggleMantenimiento('edificioA', index)}>
+                            {mantenimiento.edificioA[index] ? 'Habilitar' : 'Deshabilitar'}
+                          </button>
+                        )}
                       </div>
-                      <div className="input-group">
-                        <select
-                          value={personas}
-                          onChange={(e) => setPersonas(Number(e.target.value))}
-                        >
-                          <option value={0}>N° de personas</option>
-                          {[...Array(8)].map((_, i) => (
-                            <option key={i + 1} value={i + 1}>{i + 1}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="input-group">
-                        <select
-                          value={carrera}
-                          onChange={(e) => setCarrera(e.target.value)}
-                          disabled={!carreraEditable}
-                          style={{ backgroundColor: carreraEditable ? 'white' : 'lightgray' }}
-                        >
-                          <option value="">Selecciona una carrera</option>
-                          {carreras.map((carrera) => (
-                            <option key={carrera.id_carrera} value={carrera.nombre_carrera}>
-                              {carrera.nombre_carrera}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="input-group">
-                        <select
-                          value={tipoUsuario}
-                          onChange={(e) => setTipoUsuario(e.target.value)}
-                          disabled={!tipoUsuarioEditable}
-                          style={{ backgroundColor: tipoUsuarioEditable ? 'white' : 'lightgray' }}
-                        >
-                          <option value="">Selecciona tipo de usuario</option>
-                          <option value="estudiante">Estudiante</option>
-                          <option value="profesor">Profesor</option>
-                        </select>
-                      </div>
-                      <div className="input-group">
-                        <select
-                          value={horaInicio}
-                          onChange={(e) => setHoraInicio(e.target.value)}
-                        >
-                          <option value="">Selecciona un rango de horas</option>
-                          {getValidTimeOptions().map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="button-group">
-                        <button className="btn btn-primary" onClick={confirmarAsignacion}>Asignar</button>
-                        <button className="btn btn-secondary" onClick={() => setSelectedSala(null)}>Cancelar</button>
-                      </div>
-                    </div>
-                  )}
-                  {tiempoRestante !== undefined && (
-                    <div className="timer">
-                      {tiempoRestante > 0 ? `Tiempo restante: ${formatTime(tiempoRestante)}` : `Tiempo excedido`}
-                    </div>
-                  )}
-                  {estadoSala !== 'rojo' && (
-                    <button className="btn btn-warning" onClick={() => toggleMantenimiento('edificioA', index)}>
-                      {mantenimiento.edificioA[index] ? 'Habilitar' : 'Deshabilitar'}
-                    </button>
-                  )}
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+              <div className="edificio reducido">
+                <h2>Edificio B</h2>
+                <div className="salas-container">
+                  {salas.edificioB.map((sala, index) => {
+                    const tiempoRestante = timers[index+7];
+                    let estadoSala = sala.estado; // Usar el estado actual de la sala
 
-          <div className="edificio">
-            <h2>Edificio B</h2>
-            {salas.edificioB.map((sala, index) => {
-              const tiempoRestante = timers[index+7];
-              let estadoSala = sala.estado; // Usar el estado actual de la sala
+                    if (tiempoRestante !== undefined) {
+                      if (tiempoRestante >= 6) {
+                        estadoSala = 'rojo'; // Entre 9 y 6 segundos restantes
+                      }else if (tiempoRestante < 0) {
+                        estadoSala = 'amarillo'; // Tiempo excedido
+                      }
+                    }
 
-              if (tiempoRestante !== undefined) {
-                if (tiempoRestante >= 6) {
-                  estadoSala = 'rojo'; // Entre 9 y 6 segundos restantes
-                }else if (tiempoRestante < 0) {
-                  estadoSala = 'amarillo'; // Tiempo excedido
-                }
-              }
-
-              return (
-                <div key={index+7} className="sala" data-estado={estadoSala}>
-                  <div onClick={() => handleSalaClick('edificioB', index)}>
-                    Sala {index + 7}
-                  </div>
-                  {sala.estado === 'rojo' && (
-                    <SalaInfo sala={sala} index={index} edificio="edificioB" liberarSala={liberarSala} />
-                  )}
-                  {selectedSala && selectedSala.edificio === 'edificioB' && selectedSala.index === index && (
-                    <div className="menu-asignacion">
-                      <h3>Asignar Sala {index + 7}</h3>
-                      <div className="input-group">
-                        <input
-                          type="text"
-                          placeholder=" Ingrese RUT"
-                          value={rut}
-                          onChange={handleRutChange}
-                          maxLength={10}
-                        />
+                    return (
+                      <div key={index+7} className="sala" data-estado={estadoSala}>
+                        <div onClick={() => handleSalaClick('edificioB', index)}>
+                          Sala {index + 7}
+                        </div>
+                        {sala.estado === 'rojo' && (
+                          <SalaInfo sala={sala} index={index} edificio="edificioB" liberarSala={liberarSala} />
+                        )}
+                        {selectedSala && selectedSala.edificio === 'edificioB' && selectedSala.index === index && (
+                          <div className="menu-asignacion">
+                            <h3>Asignar Sala {index + 7}</h3>
+                            <div className="input-group">
+                              <input
+                                type="text"
+                                placeholder=" Ingrese RUT"
+                                value={rut}
+                                onChange={handleRutChange}
+                                maxLength={10}
+                              />
+                            </div>
+                            <div className="input-group">
+                              <select
+                                value={personas}
+                                onChange={(e) => setPersonas(Number(e.target.value))}
+                              >
+                                <option value={0}>N° de personas</option>
+                                {[...Array(8)].map((_, i) => (
+                                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="input-group">
+                              <select
+                                value={carrera}
+                                onChange={(e) => setCarrera(e.target.value)}
+                                disabled={!carreraEditable}
+                                style={{ backgroundColor: carreraEditable ? 'white' : 'lightgray' }}
+                              >
+                                <option value="">Selecciona una carrera</option>
+                                {carreras.map((carrera) => (
+                                  <option key={carrera.id_carrera} value={carrera.nombre_carrera}>
+                                    {carrera.nombre_carrera}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="input-group">
+                              <select
+                                value={tipoUsuario}
+                                onChange={(e) => setTipoUsuario(e.target.value)}
+                                disabled={!tipoUsuarioEditable}
+                                style={{ backgroundColor: tipoUsuarioEditable ? 'white' : 'lightgray' }}
+                              >
+                                <option value="">Selecciona tipo de usuario</option>
+                                <option value="estudiante">Estudiante</option>
+                                <option value="profesor">Profesor</option>
+                              </select>
+                            </div>
+                            <div className="input-group">
+                              <select
+                                value={horaInicio}
+                                onChange={(e) => setHoraInicio(e.target.value)}
+                              >
+                                <option value="">Selecciona un rango de horas</option>
+                                {getValidTimeOptions().map(option => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="button-group">
+                              <button className="btn btn-primary" onClick={confirmarAsignacion}>Asignar</button>
+                              <button className="btn btn-secondary" onClick={() => setSelectedSala(null)}>Cancelar</button>
+                            </div>
+                          </div>
+                        )}
+                        {tiempoRestante !== undefined && (
+                          <div className="timer">
+                            {tiempoRestante > 0 ? `Tiempo restante: ${formatTime(tiempoRestante)}` : `Tiempo excedido`}
+                          </div>
+                        )}
+                        {estadoSala !== 'rojo' && (
+                          <button className="btn btn-warning" onClick={() => toggleMantenimiento('edificioB', index)}>
+                            {mantenimiento.edificioB[index] ? 'Habilitar' : 'Deshabilitar'}
+                          </button>
+                        )}
                       </div>
-                      <div className="input-group">
-                        <select
-                          value={personas}
-                          onChange={(e) => setPersonas(Number(e.target.value))}
-                        >
-                          <option value={0}>N° de personas</option>
-                          {[...Array(8)].map((_, i) => (
-                            <option key={i + 1} value={i + 1}>{i + 1}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="input-group">
-                        <select
-                          value={carrera}
-                          onChange={(e) => setCarrera(e.target.value)}
-                          disabled={!carreraEditable}
-                          style={{ backgroundColor: carreraEditable ? 'white' : 'lightgray' }}
-                        >
-                          <option value="">Selecciona una carrera</option>
-                          {carreras.map((carrera) => (
-                            <option key={carrera.id_carrera} value={carrera.nombre_carrera}>
-                              {carrera.nombre_carrera}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="input-group">
-                        <select
-                          value={tipoUsuario}
-                          onChange={(e) => setTipoUsuario(e.target.value)}
-                          disabled={!tipoUsuarioEditable}
-                          style={{ backgroundColor: tipoUsuarioEditable ? 'white' : 'lightgray' }}
-                        >
-                          <option value="">Selecciona tipo de usuario</option>
-                          <option value="estudiante">Estudiante</option>
-                          <option value="profesor">Profesor</option>
-                        </select>
-                      </div>
-                      <div className="input-group">
-                        <select
-                          value={horaInicio}
-                          onChange={(e) => setHoraInicio(e.target.value)}
-                        >
-                          <option value="">Selecciona un rango de horas</option>
-                          {getValidTimeOptions().map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="button-group">
-                        <button className="btn btn-primary" onClick={confirmarAsignacion}>Asignar</button>
-                        <button className="btn btn-secondary" onClick={() => setSelectedSala(null)}>Cancelar</button>
-                      </div>
-                    </div>
-                  )}
-                  {tiempoRestante !== undefined && (
-                    <div className="timer">
-                      {tiempoRestante > 0 ? `Tiempo restante: ${formatTime(tiempoRestante)}` : `Tiempo excedido`}
-                    </div>
-                  )}
-                  {estadoSala !== 'rojo' && (
-                    <button className="btn btn-warning" onClick={() => toggleMantenimiento('edificioB', index)}>
-                      {mantenimiento.edificioA[index] ? 'Habilitar' : 'Deshabilitar'}
-                    </button>
-                  )}
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-          <button onClick={handleLogout} className="btn btn-secondary">Cerrar Sesión</button>
-          <button onClick={() => setShowBanForm(true)} className="btn btn-danger">Bloquear Usuario</button>
-          {showBanForm && (
-            <div className="ban-form">
-              <h3>Bloquear Usuario</h3>
-              <label htmlFor="banRut">RUT</label>
-              <input
-                type="text"
-                id="banRut"
-                placeholder="RUT"
-                value={banRut}
-                onChange={(e) => setBanRut(e.target.value)}
-                maxLength={10}
-              />
-              <label htmlFor="banFecha">Fecha</label>
-              <input
-                type="date"
-                id="banFecha"
-                value={banFecha}
-                onChange={(e) => setBanFecha(e.target.value)}
-              />
-              <label htmlFor="banMotivo">Motivo del ban</label>
-              <textarea
-                id="banMotivo"
-                placeholder="Motivo del Bloqueo"
-                value={banMotivo}
-                onChange={(e) => setBanMotivo(e.target.value)}
-                className="ban-form"
-              />
-              <button onClick={handleBan} className="btn btn-primary">Confirmar Ban</button>
-              <button onClick={() => setShowBanForm(false)} className="btn btn-secondary">Cancelar</button>
-            </div>
+              </div>
+              <div className="button-group-horizontal">
+                <button onClick={handleLogout} className="btn btn-secondary">Cerrar Sesión</button>
+                <button onClick={() => setShowBanForm(true)} className="btn btn-danger">Bloquear Usuario</button>
+                <button onClick={() => handleViewChange('historial')} className="btn btn-secondary">Ver Historial de Reservas</button>
+              </div>
+              {showBanForm && (
+                <div className="ban-form reducido">
+                  <h3>Bloquear Usuario</h3>
+                  <label htmlFor="banRut">RUT</label>
+                  <input
+                    type="text"
+                    id="banRut"
+                    placeholder="RUT"
+                    value={banRut}
+                    onChange={(e) => setBanRut(e.target.value)}
+                    maxLength={10}
+                  />
+                  <label htmlFor="banFecha">Fecha</label>
+                  <input
+                    type="date"
+                    id="banFecha"
+                    value={banFecha}
+                    onChange={(e) => setBanFecha(e.target.value)}
+                  />
+                  <label htmlFor="banMotivo">Motivo del ban</label>
+                  <textarea
+                    id="banMotivo"
+                    placeholder="Motivo del Bloqueo"
+                    value={banMotivo}
+                    onChange={(e) => setBanMotivo(e.target.value)}
+                    className="ban-form"
+                  />
+                  <button onClick={handleBan} className="btn btn-primary">Confirmar BLoqueo</button>
+                  <button onClick={() => setShowBanForm(false)} className="btn btn-secondary">Cancelar</button>
+                </div>
+              )}
+              <ToastContainer />
+            </>
           )}
-          <ToastContainer />
         </>
-      )}
+      ) : currentView === 'historial' ? (
+        <Historial onBack={() => handleViewChange('main')} />
+      ) : null}
     </div>
   );
 };

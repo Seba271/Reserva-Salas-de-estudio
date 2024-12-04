@@ -252,6 +252,34 @@ app.get('/api/salas/deshabilitadas', (req, res) => {
   });
 });
 
+app.get('/api/reservas-detalles', (req, res) => {
+  const { fechaInicio, fechaFin } = req.query; // Obtener el rango de fechas de los parámetros de consulta
+
+  const query = `
+    SELECT 
+      salas.id_sala AS sala,
+      reservas.fecha_reserva AS fecha,
+      reservas.hora_inicio AS horaInicio,
+      reservas.hora_fin AS horaFin,
+      usuarios.rut AS rutUsuario,
+      reservas.numero_personas AS numeroPersonas,
+      carreras.nombre_carrera AS carrera
+    FROM reservas
+    JOIN usuarios ON reservas.rut_usuario = usuarios.rut
+    JOIN carreras ON usuarios.carrera_id = carreras.id_carrera
+    JOIN salas ON reservas.id_sala = salas.id_sala
+    WHERE reservas.fecha_reserva BETWEEN ? AND ?
+    ORDER BY  reservas.fecha_reserva asc, reservas.hora_inicio asc, reservas.id_sala;
+  `;
+  db.query(query, [fechaInicio, fechaFin], (err, results) => { // Pasar el rango de fechas como parámetros
+    if (err) {
+      console.error('Error al obtener las reservas detalladas:', err);
+      return res.status(500).json({ error: 'Error al obtener las reservas detalladas' });
+    }
+    res.json(results);
+  });
+});
+
 // Iniciar el servidor en el puerto definido en .env
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

@@ -165,6 +165,18 @@ export const obtenerSalasDeshabilitadas = async () => {
     console.error('Error en la solicitud de salas deshabilitadas:', error);
     throw error;
   }
+  
 };
-
+export const fetchReservasDetalles = async (fechaInicio: string, fechaFin: string) => {
+  try {
+      const response = await fetch(`http://localhost:3000/api/reservas-detalles?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`);
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      return await response.json();
+  } catch (error) {
+      console.error('Error fetching reservas detalles:', error);
+      throw error;
+  }
+};
 // Puedes agregar más funciones para otras solicitudes aquí 
