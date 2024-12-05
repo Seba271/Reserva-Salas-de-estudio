@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { fetchReservasDetalles } from './services/apiService';
+import * as XLSX from 'xlsx';
 import './Historial.css';
 
 interface Reserva {
@@ -89,6 +90,154 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
         return sortConfig.direction === 'asc' ? '↑' : '↓'; // Iconos para ascendente y descendente
     };
 
+    const exportToExcel = () => {
+        const workbook = XLSX.utils.book_new();
+        const horarios = [
+            "08:30:00", "10:30:00", "12:30:00", "14:30:00",
+            "16:30:00", "18:30:00", "20:30:00"
+        ];
+
+        const fechas = [...new Set(reservas.map(reserva => reserva.fecha))];
+        //añadir primera hoja con datos generales
+
+    // Crear la estructura de datos generales
+    const dataGeneral: any[] = [
+        { "Descripción": "Rut más repetido", "Valor": rutMasRepetido },
+        { "Descripción": "Tramo más reservado", "Valor": `${tramoMasReservadoInicio} - ${tramoMasReservadoFin}` },
+        { "Descripción": "Registros encontrados", "Valor": reservas.length },
+        { "Descripción": "Carrera Frecuente", "Valor": carreraMasReservada }
+    ];
+
+    // Convertir dataGeneral a una hoja de Excel
+    const worksheetGeneral = XLSX.utils.json_to_sheet(dataGeneral);
+    XLSX.utils.book_append_sheet(workbook, worksheetGeneral, "Datos Generales");
+
+    // Agregar detalles de cada reserva
+    const dataReservas = reservas.map(reserva => ({
+        Sala: reserva.sala,
+        Fecha: new Date(reserva.fecha).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }),
+        HoraInicio: reserva.horaInicio,
+        HoraFin: reserva.horaFin,
+        RUTUsuario: reserva.rutUsuario,
+        NúmeroPersonas: reserva.numeroPersonas,
+        Carrera: reserva.carrera
+    }));
+
+    const worksheetReservas = XLSX.utils.json_to_sheet(dataReservas);
+    XLSX.utils.book_append_sheet(workbook, worksheetReservas, "Reservas");
+        
+        fechas.forEach(fecha => {
+            const reservasPorFecha = reservas.filter(reserva => reserva.fecha === fecha);
+            const salas = [...new Set(reservasPorFecha.map(reserva => reserva.sala))];
+
+            const data: any[] = [];
+            let totalDia = 0;
+            let totalManana = 0;
+            let totalTarde = 0;
+            let totalNoche = 0;
+
+            salas.forEach(sala => {
+                data.push([{ Sala: `Sala ${sala}` }]);
+
+                let totalEstudiantes = 0;
+
+                horarios.forEach(horaInicio => {
+                    const reserva = reservasPorFecha.find(reserva => reserva.sala === sala && reserva.horaInicio === horaInicio);
+                    const numeroEstudiantes = reserva ? reserva.numeroPersonas : 0;
+                    //solo obtener valor, no es necesario guardar la
+                    totalEstudiantes += numeroEstudiantes;
+
+                // Sumar a los tramos correspondientes
+                    if (horaInicio >= "08:30:00" && horaInicio < "14:30:00") {
+                        totalManana += numeroEstudiantes;
+                    } else if (horaInicio >= "14:30:00" && horaInicio < "18:30:00") {
+                        totalTarde += numeroEstudiantes;
+                    } else if (horaInicio >= "18:30:00") {
+                        totalNoche += numeroEstudiantes;
+                    }
+
+                    data.push({
+                        Tramo: `${horaInicio} A ${horarios[horarios.indexOf(horaInicio) + 1] || "22:30:00"}`,
+                        "N° estudiantes": numeroEstudiantes,
+                        "RUT responsable": reserva ? reserva.rutUsuario : '',
+                        Carrera: reserva ? reserva.carrera : '',
+                    });
+                });
+
+                totalDia += totalEstudiantes;
+
+                data.push({
+                    Tramo: "TOTAL",
+                    "N° estudiantes": totalEstudiantes,
+                    "RUT responsable": "",
+                    Carrera: "",
+                });
+
+                data.push([]);
+            });
+
+            // se crea otra tabla para las estadisticas
+            data.push([]);  
+
+
+// Verifica que la celda H22 esté dentro del rango de datos
+            // columna total dia XD                 
+            // su dato de abajo es totaldia         
+
+          //  data.push([{ TRAMOS: "TRAMOS", TOTAL: "TOTAL" }]);
+            //data.push([{ TRAMOS: "08:30 - 14:30", TOTAL: totalManana }]);
+            //data.push([{ TRAMOS: "14:30 - 18:30", TOTAL: totalTarde }]);
+       //     data.push([{ TRAMOS: "18:30 - 22:30", TOTAL: totalNoche }]);
+        
+        const worksheet = XLSX.utils.json_to_sheet(data.flat());
+            
+
+
+    // Verifica que la celda H22 esté dentro del rango de datos
+    if (!worksheet['!ref'] || !worksheet['!ref'].includes('H1') && !worksheet['!ref'].includes('I1') && !worksheet['!ref'].includes('H3') && !worksheet['!ref'].includes('H4') && !worksheet['!ref'].includes('H5') && !worksheet['!ref'].includes('H6') && !worksheet['!ref'].includes('I3') && !worksheet['!ref'].includes('I4') && !worksheet['!ref'].includes('I5') && !worksheet['!ref'].includes('I6')) {
+        worksheet['!ref'] = `A1:I600`; // Ajusta el rango si es necesario
+}
+
+        // Especificar el valor de una celda en H22
+    
+        worksheet['H1'] = { t: 's', v: "Total personas en el dia" };
+
+        worksheet['I1'] = { t: 'n', v: totalDia }; //  
+        // COLUMNAS TRAMOS 
+        worksheet['H3'] = { t: 's', v: "TRAMOS" };
+        worksheet['H4'] = { t: 's', v: "08:30 - 14:30"};   
+        worksheet['H5'] = { t: 's', v: "14:30 - 18:30"};   
+        worksheet['H6'] = { t: 's', v: "18:30 - 22:30"};   
+        // COLUMNAS TOTAL
+        worksheet['I3'] = { t: 's', v: "TOTAL" };   
+        worksheet['I4'] = { t: 'n', v: totalManana };   
+        worksheet['I5'] = { t: 'n', v: totalTarde };   
+        worksheet['I6'] = { t: 'n', v: totalNoche };   
+        
+            worksheet['!cols'] = [
+                { wch: 7 },
+                { wch: 17 },
+                { wch: 13 },
+                { wch: 14 },
+                { wch: 37 }
+            ];
+
+            const fechaFormateada = new Date(fecha).toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, fechaFormateada);
+        });
+
+        XLSX.writeFile(workbook, 'HistorialReservas.xlsx');
+    };
+
     return (
         <div className="historial-container">
             <h1>Historial de Reservas</h1>
@@ -106,7 +255,9 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
                     className="date-picker"
                 />
                 {showExportButton && (
-                    <button className="btn btn-export">Exportar Reporte</button>
+                    <button className="btn btn-export" onClick={exportToExcel}>
+                        Exportar Reporte
+                    </button>
                 )}
                 <button onClick={handleSearch} className="btn btn-primary">Buscar</button>
                 <button onClick={onBack} className="btn btn-danger">Volver</button>

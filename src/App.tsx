@@ -782,9 +782,10 @@ const SalaManager = () => {
                 </div>
               </div>
               <div className="button-group-horizontal">
+              <button onClick={() => handleViewChange('historial')} className="btn btn-success">Ver Historial de Reservas</button>
                 <button onClick={handleLogout} className="btn btn-secondary">Cerrar Sesión</button>
                 <button onClick={() => setShowBanForm(true)} className="btn btn-danger">Bloquear Usuario</button>
-                <button onClick={() => handleViewChange('historial')} className="btn btn-secondary">Ver Historial de Reservas</button>
+               
               </div>
               {showBanForm && (
                 <div className="ban-form reducido">

@@ -1,4 +1,5 @@
 import React from 'react';
+import './App.css';
 
 interface Sala {
     estado: string;
@@ -21,19 +22,23 @@ const VistaSalasPublica: React.FC<SalasProps> = ({ salas, onLoginClick }) => {
             <h1>Estado de las Salas</h1>
             <div className="edificio">
                 <h2>Edificio A</h2>
-                {salas.edificioA.map((sala, index) => (
-                    <div key={index} className="sala" data-estado={sala.estado}>
-                        Sala {index + 1}
-                    </div>
-                ))}
+                <div className="salas-grid edificio-a">
+                    {salas.edificioA.map((sala, index) => (
+                        <div key={index} className="sala" data-estado={sala.estado}>
+                            Sala {index + 1}
+                        </div>
+                    ))}
+                </div>
             </div>
             <div className="edificio">
                 <h2>Edificio B</h2>
-                {salas.edificioB.map((sala, index) => (
-                    <div key={index} className="sala" data-estado={sala.estado}>
-                        Sala {index + 7}
-                    </div>
-                ))}
+                <div className="salas-grid edificio-b">
+                    {salas.edificioB.map((sala, index) => (
+                        <div key={index} className="sala" data-estado={sala.estado}>
+                            Sala {index + 7}
+                        </div>
+                    ))}
+                </div>
             </div>
             <button onClick={onLoginClick} className="btn btn-primary">Iniciar Sesión</button>
         </div>
