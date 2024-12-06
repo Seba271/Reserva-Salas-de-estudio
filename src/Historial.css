@@ -6,6 +6,22 @@
     font-weight: bold; /* Hace que la fuente sea más gruesa */
 }
 
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+
+  }
+  .container{
+    
+    box-shadow: none;
+ }
+
+ 
+  
 /* Estilos para la tabla */
 .btn-danger {
     padding: 15px 25px;
@@ -89,6 +105,31 @@
     margin: 10px 0;
 }
 
+.btn-export {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #ffffff;
+    background-color: #006400;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    width: 120px;
+    height: 50px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-export:hover {
+    background-color: #004d00;
+    transform: scale(1.05);
+}
+
 .progress-bar {
     height: 20px;
     background-color: #004085;
@@ -131,22 +172,25 @@
 }
 
 .historial-container {
+    position: relative;
     height: auto;
-    width: auto; /* Usa todo el ancho disponible */
-    margin: 0 auto; /* Centra el contenedor horizontalmente */
-    padding: 20px; /* Añade un poco de padding para el contenido interno */
-    background-color: #ffffff; /* Fondo blanco para el contenedor */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra para efecto de elevación */
-  border-radius: 8px; /* Bordes redondeados */
+    width: auto;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
 }
 .main-container {
-    width: 100%; /* Usa todo el ancho disponible */
-    max-width: 100%; /* Aumenta el ancho máximo del contenedor padre */
-    margin: 0 auto; /* Centra el contenedor horizontalmente */
-    padding: 20px; /* Añade un poco de padding para el contenido interno */
-    background-color: #f0f0f0; /* Fondo claro para el contenedor */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra para efecto de elevación */
-    border-radius: 8px; /* Bordes redondeados */
+    display: flex;
+    flex-direction: column;
+    /* Cambiar a columna para apilar edificios */
+    align-items: center;
+    /* Centrar edificios */
+    overflow-y: auto;
+    /* Permitir desplazamiento vertical */
+    max-height: 90vh;
+
   }
 
 .record-card-container {
@@ -177,18 +221,28 @@
     color: #ffffff; /* Cambia el color del texto del encabezado */
 }
 
-.btn-export {
-    padding: 15px 25px;
-    background-color: #006400; /* Verde oscuro */
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    margin-left: 10px;
-    transition: background-color 0.3s ease;
+.help-icon-container {
+  background-color: #ff7f00; /* Fondo naranja */
+  color: white; /* Texto blanco */
+  padding: 10px;
+  border-radius: 10px; /* Bordes redondeados */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra */
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
 }
 
-.btn-export:hover {
-    background-color: #004d00; /* Verde más oscuro al pasar el ratón */
+.help-icon-container p {
+  margin: 5px 0 0 0;
+  color: white; /* Texto blanco */
+  border-radius: 10px;
+}
+
+body.historial-body {
+  background-color: rgb(222, 227, 222);
+
 }

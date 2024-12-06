@@ -5,15 +5,15 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: linear-gradient(135deg, #af88d7 0%, #2b70e8 100%);
-  color: rgb(255, 255, 255);
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
   font-family: 'Arial', sans-serif;
 }
 
 .login-title {
   font-size: 2.5rem;
   margin-bottom: 20px;
-  color: rgb(255, 255, 255);
+  color: white;
 }
 
 .login-form {
@@ -28,9 +28,10 @@
   width: 100%;
   padding: 10px;
   margin: 10px 0;
-  border: none;
+  border: 1px solid #007bff;
   border-radius: 5px;
   font-size: 1rem;
+  color: #ffffff;
 }
 
 .login-input::placeholder {
@@ -46,7 +47,7 @@
   margin-top: 10px;
   border: none;
   border-radius: 5px;
-  background-color: #2575fc;
+  background-color: #ff7f00;
   color: white;
   font-size: 1.2rem;
   cursor: pointer;
@@ -60,4 +61,77 @@
 label {
   color: white;
   /* Cambiar el color del texto a blanco */
+}
+
+.login-container p {
+  color: black; /* Cambia el color del texto a negro */
+  margin: 0; /* Elimina el margen para acercar el texto al ícono */
+  display: inline; /* Asegura que el texto esté en línea con el ícono */
+}
+
+@keyframes flash {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(0, 123, 255, 0.5); } /* Azul con transparencia */
+}
+
+.flash {
+  animation: flash 0.5s ease-in-out 2; /* Duración de 0.5s, 2 repeticiones */
+}
+
+.help-icon {
+  background-color: #ff7f00; /* Fondo naranja */
+  color: white; /* Texto blanco para asegurar legibilidad */
+  padding: 10px;
+  border-radius: 10px; /* Bordes redondeados */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra para el contenedor */
+  opacity: 0.9;
+}
+
+.help-icon.flash {
+  animation: flash 1s infinite;
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.login-modal  {
+  background-color: #ff7f00; /* Fondo naranja */
+  color: white; /* Texto blanco para asegurar legibilidad */
+  padding: 20px;
+  border-radius: 10px; /* Bordes redondeados */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra para el modal */
+}
+
+/* Botón de ayuda */
+.help-icon-container {
+  background-color: #ff7f00; /* Fondo naranja */
+  color: white; /* Texto blanco */
+  padding: 10px;
+  border-radius: 10px; /* Bordes redondeados */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra */
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.help-icon-container p {
+  margin: 5px 0 0 0;
+  color: white; /* Cambia el texto a blanco */
+}
+
+/* Asegúrate de que esta clase esté definida en Login.css */
+.login-container .login-modal .modal-content {
+  background-color: #ff7f00 !important; /* Cambia el fondo a naranja */
+  color: white !important; /* Asegura que el texto sea blanco */
+  /* Otros estilos específicos para el modal en Login */
+}
+.class-modal-info {
+  background: #ff7f00 !important;
+  color: white !important; /* Asegura que el texto sea blanco */
 }

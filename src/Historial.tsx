@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchReservasDetalles } from './services/apiService';
 import * as XLSX from 'xlsx';
 import './Historial.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import Modal from './Modal';
 
 interface Reserva {
     sala: number;
@@ -28,6 +31,17 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
     const [tramoMasReservadoFin, setTramoMasReservadoFin] = useState('');
     const [showRecordCardContainer, setShowRecordCardContainer] = useState(false);
     const [showExportButton, setShowExportButton] = useState(false);
+    const [showInfo, setShowInfo] = useState(false);
+
+    useEffect(() => {
+        // Añadir clase al body al montar el componente
+        document.body.classList.add('historial-body');
+
+        // Limpiar la clase al desmontar el componente
+        return () => {
+            document.body.classList.remove('historial-body');
+        };
+    }, []);
 
     const handleSearch = async () => {
         try {
@@ -140,7 +154,7 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
             let totalTarde = 0;
             let totalNoche = 0;
 
-            salas.forEach(sala => {
+            salas.sort((a, b) => a - b).forEach(sala  => {
                 data.push([{ Sala: `Sala ${sala}` }]);
 
                 let totalEstudiantes = 0;
@@ -182,16 +196,8 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
 
             // se crea otra tabla para las estadisticas
             data.push([]);  
-
-
-// Verifica que la celda H22 esté dentro del rango de datos
-            // columna total dia XD                 
-            // su dato de abajo es totaldia         
-
-          //  data.push([{ TRAMOS: "TRAMOS", TOTAL: "TOTAL" }]);
-            //data.push([{ TRAMOS: "08:30 - 14:30", TOTAL: totalManana }]);
-            //data.push([{ TRAMOS: "14:30 - 18:30", TOTAL: totalTarde }]);
-       //     data.push([{ TRAMOS: "18:30 - 22:30", TOTAL: totalNoche }]);
+            
+    
         
         const worksheet = XLSX.utils.json_to_sheet(data.flat());
             
@@ -203,7 +209,6 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
 }
 
         // Especificar el valor de una celda en H22
-    
         worksheet['H1'] = { t: 's', v: "Total personas en el dia" };
 
         worksheet['I1'] = { t: 'n', v: totalDia }; //  
@@ -217,22 +222,42 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
         worksheet['I4'] = { t: 'n', v: totalManana };   
         worksheet['I5'] = { t: 'n', v: totalTarde };   
         worksheet['I6'] = { t: 'n', v: totalNoche };   
-        
-            worksheet['!cols'] = [
-                { wch: 7 },
-                { wch: 17 },
-                { wch: 13 },
-                { wch: 14 },
-                { wch: 37 }
-            ];
 
-            const fechaFormateada = new Date(fecha).toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+        // Define el estilo de borde
+        const borderStyle = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+        };
 
-            XLSX.utils.book_append_sheet(workbook, worksheet, fechaFormateada);
+        // Aplica el estilo de borde a cada celda
+        const range = XLSX.utils.decode_range(worksheet['!ref'] || '');
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cell_address = { c: C, r: R };
+                const cell_ref = XLSX.utils.encode_cell(cell_address);
+
+                if (!worksheet[cell_ref]) worksheet[cell_ref] = {}; // Asegúrate de que la celda exista
+                worksheet[cell_ref].s = { border: borderStyle };
+            }
+        }
+
+        worksheet['!cols'] = [
+            { wch: 7 },
+            { wch: 17 },
+            { wch: 13 },
+            { wch: 14 },
+            { wch: 37 }
+        ];
+
+        const fechaFormateada = new Date(fecha).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, fechaFormateada);
         });
 
         XLSX.writeFile(workbook, 'HistorialReservas.xlsx');
@@ -242,6 +267,19 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
         <div className="historial-container">
             <h1>Historial de Reservas</h1>
             <div className="search-controls">
+            {showExportButton && (
+                    
+                    <button className="btn btn-export" onClick={exportToExcel}>
+                        <img 
+                            width="25" 
+                            height="25" 
+                            src="https://img.icons8.com/ios/50/FFFFFF/microsoft-excel-2019.png" 
+                            alt="microsoft-excel-2019" 
+                            style={{ marginRight: '8px' }}
+                        />
+                        Exportar Reporte
+                    </button>
+                )}
                 <input
                     type="date"
                     value={fechaInicio}
@@ -254,11 +292,7 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
                     onChange={(e) => setFechaFin(e.target.value)}
                     className="date-picker"
                 />
-                {showExportButton && (
-                    <button className="btn btn-export" onClick={exportToExcel}>
-                        Exportar Reporte
-                    </button>
-                )}
+
                 <button onClick={handleSearch} className="btn btn-primary">Buscar</button>
                 <button onClick={onBack} className="btn btn-danger">Volver</button>
 
@@ -333,8 +367,36 @@ const Historial: React.FC<HistorialProps> = ({ onBack }) => {
                     })}
                 </tbody>
             </table>
+            <div className="help-icon-container">
+                <FontAwesomeIcon 
+                    icon={faInfoCircle} 
+                    onClick={() => setShowInfo(true)} 
+                    style={{ cursor: 'pointer ', fontSize: '24px', color: '#007bff' }}
+                />
+                <p className="help-text">Ayuda</p>
+            </div>
+
+            <Modal 
+                show={showInfo} 
+                onClose={() => setShowInfo(false)} 
+                className="modal-content-instructions"
+            >
+            <h2>Instrucciones del Historial</h2>
+                <div className="instruction">
+                <img width="50" height="50" src="https://img.icons8.com/ios/50/calendar--v1.png" alt="calendar--v1"/>
+                  <span>Uso del calendario: Seleccione el rango de fechas en los calendarios para ver los registros de reservas, el primero es <strong>desde</strong>  la fecha seleccionada y el segundo es <strong>hasta</strong> la fecha seleccionada.</span>
+                </div>
+                <div className="instruction">
+                <img width="50" height="50" src="https://img.icons8.com/ios/50/financial-changes.png" alt="financial-changes"/>
+                  <span>Filtrado de datos: Permite filtrar los datos de las reservas de forma ascendente y descendente por sala, fecha, hora de inicio y hora de fin, rut, numero de personas y carrera.</span>
+                </div>
+                <div className="instruction">
+                <img width="50" height="50" src="https://img.icons8.com/ios/50/1A1A1A/microsoft-excel-2019.png" alt="microsoft-excel-2019"/>
+                  <span>Exportar datos: Permite exportar los datos de las reservas a un archivo Excel en base al rango de fechas seleccionada, donde habra datos de analisis, datos generales y datos por dia.</span>
+                </div>
+            </Modal>
         </div>
     );
-};
+}
 
 export default Historial;

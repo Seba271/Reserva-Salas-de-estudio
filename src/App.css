@@ -19,7 +19,10 @@ body {
   /* Centrar edificios */
   overflow-y: auto;
   /* Permitir desplazamiento vertical */
-  max-height: 90vh;
+  /*quitar desplazamiento horizontal*/
+  overflow-x: hidden;
+
+  max-height: 110vh;
   /* Limitar la altura del contenedor */
   box-shadow: 0 4px 10px rgb(255, 255, 255);
 }
@@ -48,6 +51,16 @@ body {
   padding: 5px 10px;
   width: 100%;
 }
+
+.help-icon {
+  background-color: #ff7f00; /* Fondo naranja */
+  color: white; /* Texto blanco para asegurar legibilidad */
+  padding: 10px;
+  border-radius: 10px; /* Bordes redondeados */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra para el contenedor */
+  opacity: 0.9;
+}
+
 
 .salas-container {
   /* modifica fondo de la sala*/
@@ -165,7 +178,12 @@ button.btn-success {
 
 button.btn-secondary {
   background-color: #176fda;
-  /* Color gris oscuro para mejor contraste */
+  /* Color original del botón */
+}
+
+button.btn-secondary:hover {
+  background-color: #176fda;
+  /* Color gris oscuro al pasar el mouse */
 }
 
 button:hover {
@@ -255,7 +273,7 @@ select:focus {
 }
 
 .btn-secondary {
-  background-color: #6c757d;
+  background-color: #176fda;
 }
 
 .btn-warning {
@@ -449,3 +467,27 @@ h2 {
   padding: 5px 0;
   text-align: center;
 }
+
+/* Botón de ayuda */
+.help-icon-container {
+  background-color: #ff7f00; /* Fondo naranja */
+  color: white; /* Texto blanco */
+  padding: 10px;
+  border-radius: 10px; /* Bordes redondeados */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra */
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  opacity: 0.9;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.help-icon-container p {
+  margin: 5px 0 0 0;
+  color: white; /* Texto blanco */
+}
+
+

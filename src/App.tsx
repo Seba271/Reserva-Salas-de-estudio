@@ -3,9 +3,12 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Login from './Login';
 import VistaSalasPublica from './VistaSalasPublica';
-import './App.css';
-import { crearUsuario, obtenerCarreras, crearReserva, actualizarEstadoReserva, actualizarEstadoSala, obtenerSalasConReservas, obtenerUsuarioPorRut, obtenerSalasDeshabilitadas } from './services/apiService';
+import './App.css'; 
+import { crearUsuario, obtenerCarreras, crearReserva,actualizarBloqueo, obtenerBloqueos, actualizarEstadoReserva, actualizarEstadoSala, obtenerSalasConReservas, obtenerUsuarioPorRut, obtenerSalasDeshabilitadas, bloquearUsuario } from './services/apiService';
 import Historial from './Historial';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import Modal from './Modal';
 
 interface Sala {
   estado: string;
@@ -64,10 +67,11 @@ const SalaManager = () => {
     edificioB: Array(4).fill(false),
   });
 
-  const [bannedUsers, setBannedUsers] = useState<{ rut: string; fecha: string; motivo: string }[]>([]);
+  const [bannedUsers, setBannedUsers] = useState<{ rut: string; fecha_inicio: string; fecha_fin: string; motivo: string }[]>([]);
   const [showBanForm, setShowBanForm] = useState(false);
   const [banRut, setBanRut] = useState('');
-  const [banFecha, setBanFecha] = useState('');
+  const [banFechaInicio, setBanFechaInicio] = useState('');
+  const [banFechaFin, setBanFechaFin] = useState('');
   const [banMotivo, setBanMotivo] = useState('');
   const [tipoUsuario, setTipoUsuario] = useState('');
   const [timers, setTimers] = useState<{ [key: number]: number }>({});
@@ -76,6 +80,7 @@ const SalaManager = () => {
   const [carreraEditable, setCarreraEditable] = useState(true);
   const [tipoUsuarioEditable, setTipoUsuarioEditable] = useState(true);
   const [currentView, setCurrentView] = useState('main');
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
     const fetchCarreras = async () => {
@@ -132,7 +137,7 @@ const SalaManager = () => {
     if (/^[0-9]*-?[0-9Kk]?$/.test(value) && value.length <= 10) {
       setRut(value);
 
-      if (value.length >= 8) {
+      if (value.length >= 9) {
         try {
           const usuario = await obtenerUsuarioPorRut(value);
           if (usuario.carrera_id !== null && usuario.carrera_id !== undefined) {
@@ -142,15 +147,14 @@ const SalaManager = () => {
             setCarreraEditable(false);
             setTipoUsuario(usuario.tipo_usuario);
             setTipoUsuarioEditable(false);
-          } else {
-            toast.error('No se pudo obtener la carrera del usuario');
           }
         } catch (error) {
-          if(value.length <= 9){
-            setCarreraEditable(true);
-            setTipoUsuarioEditable(true);
-          }
+          // Manejo de errores si es necesario
         }
+      } else {
+        // Habilitar las casillas si el RUT es menor a 9 caracteres
+        setCarreraEditable(true);
+        setTipoUsuarioEditable(true);
       }
     }
   };
@@ -189,7 +193,7 @@ const SalaManager = () => {
     }
 
     if (isUserBanned(rut)) {
-      toast.error('Este usuario está baneado y no puede reservar salas.');
+      toast.error('Este usuario está bloqueado por el siguiente motivo: ' + bannedUsers.find(user => user.rut === rut)?.motivo + ' y no puede reservar salas hasta la fecha: ' + bannedUsers.find(user => user.rut === rut)?.fecha_fin);
       return;
     }
 
@@ -210,11 +214,30 @@ const SalaManager = () => {
       const fechaReservaLocal = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
       // si edificio A, idSala = index + 1, si edificio B, idSala = index + 7
       const idSala = selectedSala.edificio === 'edificioA' ? selectedSala.index + 1 : selectedSala.index + 7;
+      
+      const bloqueos = await obtenerBloqueos(rut);
 
+      // Verificar si hay bloqueos antes de acceder a ellos
+      if (bloqueos.length > 0) {
+        if (new Date(bloqueos[0].fecha_fin) < new Date()) {
+          await actualizarBloqueo(rut, 'no');
+          bloqueos[0].estado = 'no';
+        }
+
+        if (bloqueos[0].estado === 'si') {
+          const motivo = bloqueos[0].motivo;
+          const fechaInicio = new Date(bloqueos[0].fecha_inicio).toLocaleDateString('es-ES');
+          const fechaFin = new Date(bloqueos[0].fecha_fin).toLocaleDateString('es-ES');
+          toast.error(`Este usuario está bloqueado desde ${fechaInicio} hasta ${fechaFin}. por el siguiente motivo: ${motivo}.`);
+          return;
+        }
+      }
+
+      // Proceder a crear la reserva si no hay bloqueos activos
       const reservaResponse = await crearReserva(idSala, fechaReservaLocal, horaInicio, rut, personas);
-      const { reservaId } = reservaResponse; // Obtener el ID de la reserva
+      const { reservaId } = reservaResponse;
 
-      asignarSala(reservaId); // Pasar el ID de la reserva a la función asignarSala
+      asignarSala(reservaId);
       console.log(fechaReservaLocal);
       console.log('Usuario y reserva creados exitosamente.');
 
@@ -363,19 +386,24 @@ const SalaManager = () => {
   };
 
 
-  const handleBan = () => {
-    /*
-    if (!validarRut(banRut)) {
-      toast.error('El RUT ingresado no es válido.');
+  const handleBan = async () => {
+    if (!banRut || !banFechaInicio || !banFechaFin) {
+      toast.error('Todos los campos son requeridos.');
       return;
     }
-    */
-    setBannedUsers([...bannedUsers, { rut: banRut, fecha: banFecha, motivo: banMotivo }]);
-    setBanRut('');
-    setBanFecha('');
-    setBanMotivo('');
-    setShowBanForm(false);
-    toast.success('Usuario baneado exitosamente.');
+
+    try {
+      await bloquearUsuario(banRut, banFechaInicio, banFechaFin, banMotivo);
+      setBannedUsers([...bannedUsers, { rut: banRut, fecha_inicio: banFechaInicio, fecha_fin: banFechaFin, motivo: banMotivo }]);
+      setBanRut('');
+      setBanFechaInicio('');
+      setBanFechaFin('');
+      setBanMotivo('');
+      setShowBanForm(false);
+      toast.success('Usuario bloqueado exitosamente.');
+    } catch (error) {
+      toast.error('Error al bloquear el usuario.');
+    }
   };
 
   const isUserBanned = (rut: string) => {
@@ -429,51 +457,45 @@ const SalaManager = () => {
         const salasConReservas = await obtenerSalasConReservas();
         const newSalas = { ...salas };
 
-        salasConReservas.forEach((sala: { id_sala: number; estado: string; rut_usuario: string; numero_personas: number; carrera_id: number, nombre_carrera: string, id_reserva: number, fecha_creacion: string, hora_inicio: string }) => {
+        salasConReservas.forEach((sala: { id_sala: number; estado: string; rut_usuario: string; numero_personas: number; carrera_id: number, nombre_carrera: string, id_reserva: number, fecha_creacion: string, hora_inicio: string, hora_fin: string }) => {
           const edificio = sala.id_sala <= 6 ? 'edificioA' : 'edificioB';
           const index = sala.id_sala <= 6 ? sala.id_sala - 1 : sala.id_sala - 7;
 
-        
-          const fechaCreacion = new Date(sala.fecha_creacion);
+          const horaFin = new Date(sala.hora_fin);
           const ahora = new Date();
-          const tiempoTranscurrido = Math.floor((ahora.getTime() - fechaCreacion.getTime()) / 1000);
-          const tiempoRestante = Math.max(7200 - tiempoTranscurrido, 0);
-        
+          const tiempoRestante = Math.floor((horaFin.getTime() - ahora.getTime()) / 1000);
+
           newSalas[edificio as keyof typeof salas][index] = {
-            estado: sala.estado === 'ocupada' ? 'rojo' : 'verde',
+            estado: sala.estado === 'ocupada' && tiempoRestante <= 0 ? 'amarillo' : sala.estado === 'ocupada' ? 'rojo' : 'verde',
             rut: sala.rut_usuario || '',
             personas: sala.numero_personas || 0,
             carrera: sala.nombre_carrera || '',
             id_reserva: sala.id_reserva,
           };
 
-          if(edificio === 'edificioA'){
+          if (edificio === 'edificioA') {
             if (tiempoRestante > 0) {
               setTimers((prevTimers) => ({
-              ...prevTimers,
-              [index]: tiempoRestante,
+                ...prevTimers,
+                [index]: tiempoRestante,
               }));
-              //si tiempo restante <0 poner tiempo excedido
-            }else if(tiempoRestante<0){
+            } else {
               setTimers((prevTimers) => {
                 const newTimers = { ...prevTimers };
                 delete newTimers[index];
                 return newTimers;
               });
             }
-          }else{
+          } else {
             if (tiempoRestante > 0) {
               setTimers((prevTimers) => ({
-              ...prevTimers,
-              [index+7]: tiempoRestante,
-            }));
-            //si tiempo restante <0 poner tiempo excedido
-            }else if(tiempoRestante<0){
-              //en la parte donde iba el tiempo poner tiempo excedido
-              
+                ...prevTimers,
+                [index + 7]: tiempoRestante,
+              }));
+            } else {
               setTimers((prevTimers) => {
                 const newTimers = { ...prevTimers };
-                delete newTimers[index+7];
+                delete newTimers[index + 7];
                 return newTimers;
               });
             }
@@ -556,6 +578,8 @@ const SalaManager = () => {
     setCurrentView(view);
   };
 
+ 
+
   return (
     <div className="container">
       {currentView === 'main' ? (
@@ -596,7 +620,7 @@ const SalaManager = () => {
                             <div className="input-group">
                               <input
                                 type="text"
-                                placeholder=" Ingrese RUT"
+                                placeholder=" 12345678-9"
                                 value={rut}
                                 onChange={handleRutChange}
                                 maxLength={10}
@@ -703,7 +727,7 @@ const SalaManager = () => {
                             <div className="input-group">
                               <input
                                 type="text"
-                                placeholder=" Ingrese RUT"
+                                placeholder=" 12345678-9"
                                 value={rut}
                                 onChange={handleRutChange}
                                 maxLength={10}
@@ -782,10 +806,9 @@ const SalaManager = () => {
                 </div>
               </div>
               <div className="button-group-horizontal">
-              <button onClick={() => handleViewChange('historial')} className="btn btn-success">Ver Historial de Reservas</button>
+                <button onClick={() => handleViewChange('historial')} className="btn btn-success">Ver Historial de Reservas</button>
                 <button onClick={handleLogout} className="btn btn-secondary">Cerrar Sesión</button>
                 <button onClick={() => setShowBanForm(true)} className="btn btn-danger">Bloquear Usuario</button>
-               
               </div>
               {showBanForm && (
                 <div className="ban-form reducido">
@@ -799,14 +822,21 @@ const SalaManager = () => {
                     onChange={(e) => setBanRut(e.target.value)}
                     maxLength={10}
                   />
-                  <label htmlFor="banFecha">Fecha</label>
+                  <label htmlFor="banFechaInicio">Fecha de inicio</label>
                   <input
                     type="date"
-                    id="banFecha"
-                    value={banFecha}
-                    onChange={(e) => setBanFecha(e.target.value)}
+                    id="banFechaInicio"
+                    value={banFechaInicio}
+                    onChange={(e) => setBanFechaInicio(e.target.value)}
                   />
-                  <label htmlFor="banMotivo">Motivo del ban</label>
+                  <label htmlFor="banFechaFin">Fecha de fin</label>
+                  <input
+                    type="date"
+                    id="banFechaFin"
+                    value={banFechaFin}
+                    onChange={(e) => setBanFechaFin(e.target.value)}
+                  />
+                  <label htmlFor="banMotivo">Motivo del bloqueo</label>
                   <textarea
                     id="banMotivo"
                     placeholder="Motivo del Bloqueo"
@@ -814,11 +844,39 @@ const SalaManager = () => {
                     onChange={(e) => setBanMotivo(e.target.value)}
                     className="ban-form"
                   />
-                  <button onClick={handleBan} className="btn btn-primary">Confirmar BLoqueo</button>
+                  <button onClick={handleBan} className="btn btn-primary">Confirmar Bloqueo</button>
                   <button onClick={() => setShowBanForm(false)} className="btn btn-secondary">Cancelar</button>
                 </div>
               )}
               <ToastContainer />
+              <div style={{  color: 'white', position: 'fixed', top: '10px', left: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#ff7f00', padding: '10px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0, 0, 0, 0.5)' }}>
+                <FontAwesomeIcon 
+                  icon={faInfoCircle} 
+                  onClick={() => setShowInstructions(true)} 
+                  style={{ cursor: 'pointer', fontSize: '24px', color: '#007bff' }}
+                />
+                <p style={{ margin: '5px 0 0 0', color: 'white' }}>Ayuda</p>
+              </div>
+
+              <Modal show={showInstructions} onClose={() => setShowInstructions(false)} className="modal-content-instructions">
+                <h2>Instrucciones de las salas</h2>
+                <div className="instruction">
+                  <img src="https://img.icons8.com/ios-filled/50/40C057/full-stop.png" alt="Verde" />
+                  <span>Sala disponible: puede asignar reservas o puede deshabilitar la sala</span>
+                </div>
+                <div className="instruction">
+                  <img width="50" height="50" src="https://img.icons8.com/ios-filled/50/FA5252/full-stop.png" alt="full-stop"/>
+                  <span>Sala Ocupada: puede ver datos de los ocupantes o puede liberar la sala</span>
+                </div>
+                <div className="instruction">
+                  <img width="50" height="50" src="https://img.icons8.com/ios-filled/50/737373/full-stop.png" alt="full-stop"/>
+                  <span>Sala deshabilitada: no puede asignar reservas. Puede volver a habilitar la sala para que pueda ser usada.</span>
+                </div>
+                <div className="instruction">
+                  <img width="50" height="50" src="https://img.icons8.com/ios-filled/50/FAB005/full-stop.png" alt="full-stop"/>  
+                  <span>Tiempo excedido: La sala posee una reserva activa, pero el tiempo para usar la sala ha expirado. Puede ver datos de los ocupantes o puede liberar la sala</span>
+                </div>
+              </Modal>
             </>
           )}
         </>

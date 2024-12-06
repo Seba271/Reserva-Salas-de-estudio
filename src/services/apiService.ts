@@ -179,4 +179,67 @@ export const fetchReservasDetalles = async (fechaInicio: string, fechaFin: strin
       throw error;
   }
 };
+
+export const desbloquearUsuario = async (rut: string) => {
+  try {
+    const response = await fetch(`http://localhost:3000/api/desbloquear-usuario/${rut}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al desbloquear el usuario');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en la solicitud de desbloqueo:', error);
+    throw error;
+  }
+};
+
+export const obtenerBloqueos = async (rut: string) => {
+  try {
+    const response = await fetch(`http://localhost:3000/api/bloqueos/${rut}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Error en la solicitud de bloqueos:', error);
+    throw error;
+  }
+};
+export const actualizarBloqueo = async (rut: string, estado: string) => {
+  try {
+    const response = await fetch(`http://localhost:3000/api/bloqueos/${rut}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ estado }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error en la solicitud de actualización de bloqueo:', error);
+    throw error;
+  }
+};  
+export const bloquearUsuario = async (rut: string, fecha_inicio: string, fecha_fin: string, motivo: string) => {
+  try {
+    const response = await fetch('http://localhost:3000/api/bloquear-usuario', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ rut, fecha_inicio, fecha_fin, motivo }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al bloquear el usuario');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en la solicitud de bloqueo:', error);
+    throw error;
+  }
+};
+
 // Puedes agregar más funciones para otras solicitudes aquí 
