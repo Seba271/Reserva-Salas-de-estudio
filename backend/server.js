@@ -280,6 +280,60 @@ app.get('/api/reservas-detalles', (req, res) => {
   });
 });
 
+// Ruta para desbloquear un usuario
+app.delete('/api/desbloquear-usuario/:rut', (req, res) => {
+  const { rut } = req.params;
+  const query = "DELETE FROM bloqueos WHERE rut = ?";
+  
+  db.query(query, [rut], (err, result) => {
+    if (err) {
+      console.error('Error al desbloquear el usuario:', err);
+      return res.status(500).json({ error: 'Error al desbloquear el usuario' });
+    }
+    res.status(200).json({ message: 'Usuario desbloqueado exitosamente' });
+  });
+});
+
+// Ruta para bloquear un usuario
+app.post('/api/bloquear-usuario', (req, res) => {
+  const { rut, fecha_inicio, fecha_fin, motivo } = req.body;
+
+  if (!rut || !fecha_inicio || !fecha_fin) {
+    return res.status(400).json({ error: 'Todos los campos son requeridos' });
+  }
+
+  const query = `
+    INSERT INTO bloqueos (rut, fecha_inicio, fecha_fin, motivo, estado)
+    VALUES (?, ?, ?, ?, 'si')
+  `;
+
+  db.query(query, [rut, fecha_inicio, fecha_fin, motivo], (err, result) => {
+    if (err) {
+      console.error('Error al bloquear el usuario:', err);
+      return res.status(500).json({ error: 'Error al bloquear el usuario' });
+    }
+    res.status(201).json({ message: 'Usuario bloqueado exitosamente' });
+  });
+});
+// imprimir bloqueos where rut = ?
+app.get('/api/bloqueos/:rut', (req, res) => {
+  const { rut } = req.params;
+  const query = "SELECT * FROM bloqueos WHERE rut = ?";
+  db.query(query, [rut], (err, results) => {
+    res.json(results);
+  });
+});
+
+//actualizar estado de bloqueo donde rut = ?
+app.put('/api/bloqueos/:rut', (req, res) => {
+  const { rut } = req.params;
+  const { estado } = req.body;
+  const query = "UPDATE bloqueos SET estado = ? WHERE rut = ?";
+    db.query(query, [estado, rut], (err, result) => {
+    res.json(result);
+  });
+}); 
+
 // Iniciar el servidor en el puerto definido en .env
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
